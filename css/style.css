@@ -1,64 +1,108 @@
+/* LucroJusto: estilo base. Tema claro/escuro automático, pensado para celular. */
 :root {
-    --bg-color: #f4f7fb;
-    --card-color: #ffffff;
-    --primary-color: #1f6feb;
-    --primary-soft: #eaf2ff;
-    --text-color: #1f2937;
-    --muted-color: #5b6472;
-    --border-color: #dfe7f3;
+  --fundo: #e9eef3;
+  --cartao: #ffffff;
+  --texto: #0f1b2d;
+  --suave: #5a6878;
+  --destaque: #0b5fff;
+  --borda: #cbd5e0;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0f1b2d;
+    --cartao: #18273d;
+    --texto: #eef2f7;
+    --suave: #9aa9bb;
+    --destaque: #6ea0ff;
+    --borda: #2e4260;
+  }
 }
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 body {
-    margin: 0;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(135deg, var(--bg-color), #edf3ff);
-    font-family: Arial, sans-serif;
-    color: var(--text-color);
+  margin: 0;
+  padding-top: env(safe-area-inset-top);
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.app-shell {
-    width: min(100%, 720px);
-    padding: 24px;
+#tela {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px 14px 100px;
+  outline: none;
 }
 
-.app-card {
-    background: var(--card-color);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    box-shadow: 0 12px 30px rgba(31, 111, 235, 0.08);
-    padding: 40px 32px;
-    text-align: center;
-}
-
-.eyebrow {
-    margin: 0 0 12px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--primary-color);
-    background: var(--primary-soft);
-    border-radius: 999px;
-    display: inline-block;
-    padding: 8px 12px;
+.cartao {
+  background: var(--cartao);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
 }
 
 h1 {
-    margin: 0;
-    font-size: clamp(2rem, 4vw, 3rem);
-    color: var(--text-color);
+  margin: 0 0 8px;
+  font-size: 26px;
+  line-height: 1.1;
 }
 
-.description {
-    margin: 16px auto 0;
-    max-width: 52ch;
-    color: var(--muted-color);
-    line-height: 1.6;
-    font-size: 1rem;
+.suave {
+  margin: 0;
+  color: var(--suave);
+}
+
+/* Barra de abas fixa na parte de baixo, fácil de alcançar com o polegar */
+#abas {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: var(--cartao);
+  border-top: 1px solid var(--borda);
+}
+
+#abas button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 54px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--suave);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#abas button .icone {
+  font-size: 20px;
+  line-height: 1;
+}
+
+#abas button[aria-current="page"] {
+  background: var(--texto);
+  color: var(--fundo);
+}
+
+:focus-visible {
+  outline: 3px solid var(--destaque);
+  outline-offset: 2px;
 }
