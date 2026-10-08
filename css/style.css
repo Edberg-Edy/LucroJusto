@@ -159,3 +159,69 @@ h2 {
   color: var(--erro);
   font-weight: 700;
 }
+
+/* ---- Etapa 3: formulários, listas e resumos ---- */
+label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--suave);
+  font-size: 15px;
+}
+
+input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border: 1.5px solid var(--borda);
+  border-radius: 10px;
+  background: var(--fundo);
+  color: var(--texto);
+  font: inherit;
+  font-weight: 700;
+}
+
+.linha {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.linha.l3 { grid-template-columns: 1.5fr 1fr 1fr 44px; }
+.linha.l2 { grid-template-columns: 1.6fr 1fr 44px; }
+.linha.l1 { grid-template-columns: 1fr 44px; }
+
+.linha input {
+  min-height: 44px;
+  margin: 0;
+  font-size: 16px;
+}
+
+.linha.cab {
+  margin-top: 12px;
+  color: var(--suave);
+  font-size: 13px;
+}
+
+.x {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--erro);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.resumo {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--borda);
+}
+
+.resumo.total {
+  font-weight: 800;
+}

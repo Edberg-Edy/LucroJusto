@@ -1,6 +1,7 @@
-// LucroJusto: ponto de entrada. Etapa 2: login com Google + navegação entre as 3 abas.
+// LucroJusto: ponto de entrada. Login com Google, navegação entre as 3 abas e tela de Ajustes.
 import { observarLogin, sair } from './services/firebase.js';
 import { telaLogin } from './modules/login.js';
+import { telaAjustes } from './modules/ajustes.js';
 
 // Abas do app. O conteúdo real de cada uma será criado nas próximas etapas.
 const abas = [
@@ -40,24 +41,24 @@ function desenhar() {
   // 3) Logado: abas normais
   const atual = abaAtual();
 
-  tela.innerHTML = `
-    <section class="cartao">
-      <h1>${atual.nome}</h1>
-      <p class="suave">${atual.texto}</p>
-    </section>
-    ${
-      atual.id === 'ajustes'
-        ? `<section class="cartao">
-             <h2>Conta</h2>
-             <p class="suave" id="email"></p>
-             <button type="button" class="botao secundario" id="sair">Sair</button>
-           </section>`
-        : ''
-    }`;
-
   if (atual.id === 'ajustes') {
+    // Os Ajustes carregam do banco aos poucos, por isso ficam numa caixa própria (#conteudo)
+    tela.innerHTML = `
+      <div id="conteudo"></div>
+      <section class="cartao">
+        <h2>Conta</h2>
+        <p class="suave" id="email"></p>
+        <button type="button" class="botao secundario" id="sair">Sair</button>
+      </section>`;
+    telaAjustes(document.getElementById('conteudo'), usuario);
     document.getElementById('email').textContent = usuario.email; // textContent evita problemas com caracteres especiais
     document.getElementById('sair').addEventListener('click', () => sair());
+  } else {
+    tela.innerHTML = `
+      <section class="cartao">
+        <h1>${atual.nome}</h1>
+        <p class="suave">${atual.texto}</p>
+      </section>`;
   }
 
   menu.hidden = false;
