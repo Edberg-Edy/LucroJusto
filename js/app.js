@@ -1,4 +1,6 @@
-// LucroJusto: ponto de entrada. Etapa 1: apenas a navegação entre as 3 abas.
+// LucroJusto: ponto de entrada. Etapa 2: login com Google + navegação entre as 3 abas.
+import { observarLogin, sair } from './services/firebase.js';
+import { telaLogin } from './modules/login.js';
 
 // Abas do app. O conteúdo real de cada uma será criado nas próximas etapas.
 const abas = [
@@ -10,6 +12,9 @@ const abas = [
 const tela = document.getElementById('tela');
 const menu = document.getElementById('abas');
 
+let usuario = null; // null = ninguém logado
+let carregando = true; // true até o Firebase responder se já existe alguém logado
+
 // A aba atual fica na URL (#hoje, #historico, #ajustes), então recarregar a página não perde o lugar.
 function abaAtual() {
   const id = location.hash.replace('#', '');
@@ -17,14 +22,45 @@ function abaAtual() {
 }
 
 function desenhar() {
+  // 1) Esperando o Firebase responder
+  if (carregando) {
+    menu.hidden = true;
+    tela.innerHTML = '<p class="suave">Carregando…</p>';
+    return;
+  }
+
+  // 2) Ninguém logado: só a tela de login, sem abas
+  if (!usuario) {
+    menu.hidden = true;
+    menu.innerHTML = '';
+    telaLogin(tela);
+    return;
+  }
+
+  // 3) Logado: abas normais
   const atual = abaAtual();
 
   tela.innerHTML = `
     <section class="cartao">
       <h1>${atual.nome}</h1>
       <p class="suave">${atual.texto}</p>
-    </section>`;
+    </section>
+    ${
+      atual.id === 'ajustes'
+        ? `<section class="cartao">
+             <h2>Conta</h2>
+             <p class="suave" id="email"></p>
+             <button type="button" class="botao secundario" id="sair">Sair</button>
+           </section>`
+        : ''
+    }`;
 
+  if (atual.id === 'ajustes') {
+    document.getElementById('email').textContent = usuario.email; // textContent evita problemas com caracteres especiais
+    document.getElementById('sair').addEventListener('click', () => sair());
+  }
+
+  menu.hidden = false;
   menu.innerHTML = abas
     .map(
       (a) => `
@@ -42,4 +78,12 @@ menu.addEventListener('click', (evento) => {
 });
 
 window.addEventListener('hashchange', desenhar);
+
+// O Firebase avisa quando o app abre (já logado ou não) e a cada entrada ou saída.
+observarLogin((u) => {
+  usuario = u;
+  carregando = false;
+  desenhar();
+});
+
 desenhar();

@@ -106,3 +106,56 @@ h1 {
   outline: 3px solid var(--destaque);
   outline-offset: 2px;
 }
+
+/* ---- Etapa 2: login, botões e mensagens ---- */
+:root {
+  --erro: #c53030;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --erro: #ff8a8a;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.login {
+  margin-top: 12vh;
+  text-align: center;
+}
+
+.botao {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--destaque);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.botao.secundario {
+  margin-top: 8px;
+  border: 1.5px solid var(--borda);
+  background: transparent;
+  color: var(--texto);
+}
+
+.erro {
+  min-height: 1.4em;
+  margin: 12px 0 0;
+  color: var(--erro);
+  font-weight: 700;
+}
