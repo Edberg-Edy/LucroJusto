@@ -16,8 +16,8 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 | 1 | Base com abas e tema | ✅ v0.1 |
 | 2 | Login com Google | ✅ v0.2 |
 | 3 | Regras do Firestore e Ajustes | ✅ v0.3 |
-| 4 | Cálculos com testes | 🚧 em teste |
-| 5 | Abrir o dia e despesas | ⏳ |
+| 4 | Cálculos com testes | ✅ v0.4 |
+| 5 | Abrir o dia e despesas | 🚧 em teste |
 | 6 | Fechar o dia e resultado | ⏳ |
 | 7 | Histórico semanal | ⏳ |
 | 8 | Editar, excluir, limite do MEI e backup | ⏳ |
@@ -35,7 +35,7 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 
 ## Próximo passo
 
-Fechar a etapa 4 (cálculos) e seguir para a etapa 5 (abrir o dia e despesas).
+Fechar a etapa 5 (abrir o dia e despesas) e seguir para a etapa 6 (fechar o dia e resultado).
 
 ## Pendências e ideias
 

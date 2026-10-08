@@ -1,6 +1,7 @@
-// LucroJusto: ponto de entrada. Login com Google, navegação entre as 3 abas e tela de Ajustes.
+// LucroJusto: ponto de entrada. Login com Google, navegação entre as 3 abas e as telas Hoje e Ajustes.
 import { observarLogin, sair } from './services/firebase.js';
 import { telaLogin } from './modules/login.js';
+import { telaHoje } from './modules/hoje.js';
 import { telaAjustes } from './modules/ajustes.js';
 
 // Abas do app. O conteúdo real de cada uma será criado nas próximas etapas.
@@ -53,6 +54,9 @@ function desenhar() {
     telaAjustes(document.getElementById('conteudo'), usuario);
     document.getElementById('email').textContent = usuario.email; // textContent evita problemas com caracteres especiais
     document.getElementById('sair').addEventListener('click', () => sair());
+  } else if (atual.id === 'hoje') {
+    tela.innerHTML = '<div id="conteudo"></div>';
+    telaHoje(document.getElementById('conteudo'), usuario);
   } else {
     tela.innerHTML = `
       <section class="cartao">

@@ -225,3 +225,64 @@ input {
 .resumo.total {
   font-weight: 800;
 }
+
+/* ---- Etapa 5: categorias de despesa e listas ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.chip {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--borda);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--destaque);
+  background: var(--destaque);
+  color: #ffffff;
+}
+
+.linha-acao {
+  display: flex;
+  gap: 8px;
+}
+
+.linha-acao input {
+  flex: 1;
+  margin: 0;
+}
+
+.linha-acao button {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--texto);
+  color: var(--fundo);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--borda);
+}
+
+.item span {
+  flex: 1;
+}
