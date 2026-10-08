@@ -22,7 +22,7 @@ Coloque em `docs/SPEC.md` e o protótipo em `docs/referencia/motocaixa.html`. Si
 Tudo dentro de `users/{uid}`, para cada usuário ver só o que é seu.
 
 - `config/main`: `{ meta, kmPorLitro, precoLitro, diasPorMes, limiteMei, plataformas: [nome], manutencao: [{item, preco, duracaoKm}], fixos: [{item, valorMensal}] }`
-- `dias/{id}`: `{ aberto (true enquanto o dia não foi fechado), data: "YYYY-MM-DD", odometroInicial, odometroFinal, horas (opcional), plataformas: [{nome, valor, corridas (opcional)}], despesas: [{categoria, valor}], snapshot: {kmPorLitro, precoLitro, manutencaoPorKm, fixoPorDia}, calculados: {km, faturamento, combustivel, manutencao, despesas, fixos, lucro, status} }`
+- `dias/{id}`: `{ aberto (true enquanto o dia não foi fechado), data: "YYYY-MM-DD", odometroInicial, odometroFinal, horas (opcional), plataformas: [{nome, valor, corridas (opcional)}], despesas: [{categoria, valor}], snapshot: {meta, kmPorLitro, precoLitro, manutencaoPorKm, fixoPorDia}, calculados: {km, faturamento, combustivel, manutencao, despesas, fixos, lucro, status} }`
 - `meses/{YYYY-MM}`: `{ fechado, fechadoEm, totais, checklist: {dasPago, reservaTransferida}, observacao }`
 
 O `snapshot` guarda os valores de configuração usados naquele dia. Assim, mudar o preço do litro depois não altera dias antigos.
@@ -41,8 +41,8 @@ Valores padrão: meta 200, 35 km/l, litro R$ 6,20, 24 dias/mês, limite MEI R$ 8
 - gastos totais = combustivel + manutencao + despesas + fixos
 - **guardar** = manutencao + fixos (dinheiro que não se gasta hoje)
 - livre para gastar = lucro
-- ganho por km = faturamento / km; lucro por hora = lucro / horas (se não houver horas, mostrar "—"); ganho por corrida = faturamento / corridas (se não houver, "—")
-- status (farol): verde se lucro ≥ meta; amarelo se lucro > 0; vermelho se lucro ≤ 0
+- ganho por km = faturamento / km; lucro por hora = lucro / horas (se não houver horas, mostrar "—"); ganho por corrida = soma dos ganhos das plataformas que informaram corridas ÷ corridas informadas (se não houver, "—")
+- status (farol: `verde`, `amarelo`, `vermelho`): verde se lucro ≥ meta; amarelo se lucro > 0; vermelho se lucro ≤ 0
 
 ## Telas (3 abas: Hoje, Histórico, Ajustes)
 

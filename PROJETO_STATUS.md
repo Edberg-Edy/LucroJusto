@@ -14,9 +14,9 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 | Etapa | Descrição | Situação |
 |---|---|---|
 | 1 | Base com abas e tema | ✅ v0.1 |
-| 2 | Login com Google | 🚧 em teste |
-| 3 | Regras do Firestore e Ajustes | ⏳ |
-| 4 | Cálculos com testes | ⏳ |
+| 2 | Login com Google | ✅ v0.2 |
+| 3 | Regras do Firestore e Ajustes | ✅ v0.3 |
+| 4 | Cálculos com testes | 🚧 em teste |
 | 5 | Abrir o dia e despesas | ⏳ |
 | 6 | Fechar o dia e resultado | ⏳ |
 | 7 | Histórico semanal | ⏳ |
@@ -29,10 +29,13 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 - O app se chama **LucroJusto** (o protótipo se chamava MotoCaixa).
 - Site estático sem Vite: HTML, CSS e JavaScript puros, Firebase por CDN.
 - Sem Copilot no fluxo: o código vem completo, é testado e commitado por etapa.
+- Firestore na região São Paulo (`southamerica-east1`). As regras foram publicadas à mão no console; `firestore.rules` guarda a cópia.
+- Ganho por corrida considera só as plataformas que informaram o número de corridas.
+- Testes dos cálculos com `npm test` (executor nativo do Node, sem bibliotecas).
 
 ## Próximo passo
 
-Fechar a etapa 2 (login) e seguir para a etapa 3 (regras do Firestore e Ajustes).
+Fechar a etapa 4 (cálculos) e seguir para a etapa 5 (abrir o dia e despesas).
 
 ## Pendências e ideias
 
