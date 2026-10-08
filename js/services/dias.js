@@ -35,3 +35,11 @@ export async function criarDia(uid, { data, odometroInicial }) {
 export const atualizarDia = (uid, id, campos) => updateDoc(doc(db, 'users', uid, 'dias', id), campos);
 
 export const excluirDia = (uid, id) => deleteDoc(doc(db, 'users', uid, 'dias', id));
+
+// Fecha o dia: guarda odômetro final, horas, ganhos, a fotografia dos parâmetros e os valores calculados.
+export const fecharDia = (uid, id, fechamento) =>
+  updateDoc(doc(db, 'users', uid, 'dias', id), {
+    ...fechamento,
+    aberto: false,
+    fechadoEm: serverTimestamp(),
+  });

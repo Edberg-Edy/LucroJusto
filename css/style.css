@@ -286,3 +286,75 @@ input {
 .item span {
   flex: 1;
 }
+
+/* ---- Etapa 6: fechamento e cartão de resultado ---- */
+:root {
+  --verde: #12804a;
+  --verde-fundo: #ddf3e6;
+  --amarelo: #92600a;
+  --amarelo-fundo: #fbefcf;
+  --vermelho: #c53030;
+  --vermelho-fundo: #fadddd;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --verde: #5bd593;
+    --verde-fundo: #15382a;
+    --amarelo: #f0b64a;
+    --amarelo-fundo: #3d3213;
+    --vermelho: #ff8a8a;
+    --vermelho-fundo: #411d1d;
+  }
+}
+
+.linha.l3p { grid-template-columns: 88px 1fr 84px; }
+
+.linha b {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+}
+
+.resultado {
+  border: 0;
+  text-align: center;
+}
+
+.resultado.verde { background: var(--verde-fundo); color: var(--verde); }
+.resultado.amarelo { background: var(--amarelo-fundo); color: var(--amarelo); }
+.resultado.vermelho { background: var(--vermelho-fundo); color: var(--vermelho); }
+
+.resultado-titulo {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.resultado-valor {
+  display: block;
+  margin: 4px 0;
+  font-size: 52px;
+  line-height: 1.1;
+}
+
+.indicadores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.indicadores span {
+  display: block;
+  color: var(--suave);
+  font-size: 14px;
+}
+
+.indicadores b {
+  font-size: 24px;
+}
+
+.aviso {
+  margin: -4px 4px 12px;
+  font-size: 14px;
+}

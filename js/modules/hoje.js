@@ -1,6 +1,8 @@
-// Aba Hoje. Etapa 5: abrir o dia (data + odômetro) e lançar despesas.
-// (O fechamento do dia, com ganhos e resultado, chega na Etapa 6.)
-import { buscarDiaAberto, criarDia, atualizarDia, excluirDia } from '../services/dias.js';
+// Aba Hoje. Abrir o dia (data + odômetro), lançar despesas e fechar o dia com o resultado.
+import { buscarDiaAberto, criarDia, atualizarDia, excluirDia, fecharDia } from '../services/dias.js';
+import { carregarConfig } from '../services/dados.js';
+import { calcularDia, parametrosDoDia, lerHoras } from './calculos.js';
+import { htmlResultado } from './resultado.js';
 import { hojeISO, dataBR, lerNumero, dinheiro, esc } from './formatos.js';
 
 const categorias = ['Comida', 'Manutenção', 'Estacionamento', 'Multa', 'Outros'];
@@ -9,9 +11,10 @@ const categorias = ['Comida', 'Manutenção', 'Estacionamento', 'Multa', 'Outros
 export async function telaHoje(caixa, usuario) {
   caixa.innerHTML = '<p class="suave">Carregando…</p>';
 
-  let dia;
+  let dia; // dia aberto (ou null)
+  let config; // ajustes: precisamos das plataformas e dos parâmetros para fechar o dia
   try {
-    dia = await buscarDiaAberto(usuario.uid);
+    [dia, config] = await Promise.all([buscarDiaAberto(usuario.uid), carregarConfig(usuario.uid)]);
   } catch (e) {
     caixa.innerHTML = `<section class="cartao"><h1>Hoje</h1>
       <p class="erro">Não foi possível carregar o dia (${esc(e.code || 'erro')}). Confira a internet.</p></section>`;
@@ -20,14 +23,17 @@ export async function telaHoje(caixa, usuario) {
 
   let categoria = categorias[0]; // categoria de despesa selecionada
   let confirmarDescarte = false; // true depois do primeiro toque em "Descartar este dia"
+  let resultado = null; // dia recém-fechado, mostrado até o usuário tocar em "Lançar outro dia"
+  let rascunho = {}; // o que já foi digitado no fechamento (não se perde ao lançar uma despesa)
 
-  const mostrarErro = (texto) => {
-    const el = caixa.querySelector('#erro');
+  const mostrarErro = (texto, id = 'erro') => {
+    const el = caixa.querySelector('#' + id);
     if (el) el.textContent = texto;
   };
 
   function desenhar() {
-    if (dia) desenharDiaAberto();
+    if (resultado) desenharResultado();
+    else if (dia) desenharDiaAberto();
     else desenharAbrir();
   }
 
@@ -47,8 +53,15 @@ export async function telaHoje(caixa, usuario) {
       </section>`;
   }
 
+  function desenharResultado() {
+    caixa.innerHTML = `
+      ${htmlResultado(resultado)}
+      <button type="button" class="botao" data-acao="novo">Lançar outro dia</button>`;
+  }
+
   function desenharDiaAberto() {
     const total = dia.despesas.reduce((soma, d) => soma + d.valor, 0);
+    const r = (campo) => esc(rascunho[campo] || ''); // valor já digitado, para repor na tela
 
     caixa.innerHTML = `
       <section class="cartao">
@@ -82,6 +95,29 @@ export async function telaHoje(caixa, usuario) {
           )
           .join('')}
         <div class="resumo total"><span>Total de despesas</span><b>${dinheiro(total)}</b></div>
+      </section>
+
+      <section class="cartao">
+        <h2>Fechar o dia</h2>
+        <label>Odômetro no fim (km)
+          <input type="text" inputmode="decimal" data-f="odometroFinal" value="${r('odometroFinal')}">
+        </label>
+        <label>Horas trabalhadas (opcional, ex.: 8 ou 8:30)
+          <input type="text" data-f="horas" value="${r('horas')}">
+        </label>
+        <div class="linha l3p cab"><span>Plataforma</span><span>Ganho (R$)</span><span>Corridas</span></div>
+        ${config.plataformas
+          .map(
+            (nome, i) => `
+          <div class="linha l3p">
+            <b>${esc(nome)}</b>
+            <input type="text" inputmode="decimal" data-f="v${i}" placeholder="0,00" aria-label="${esc(nome)}: ganho" value="${r('v' + i)}">
+            <input type="text" inputmode="numeric" data-f="c${i}" placeholder="nº" aria-label="${esc(nome)}: corridas" value="${r('c' + i)}">
+          </div>`
+          )
+          .join('')}
+        <p class="erro" id="erroFechar" role="alert"></p>
+        <button type="button" class="botao" data-acao="fechar">Fechar o dia</button>
       </section>
 
       <section class="cartao">
@@ -123,6 +159,44 @@ export async function telaHoje(caixa, usuario) {
     gravarDespesas([...dia.despesas, { categoria, valor }]);
   }
 
+  async function fechar() {
+    const erro = (texto) => mostrarErro(texto, 'erroFechar');
+
+    const odometroFinal = lerNumero(rascunho.odometroFinal || '');
+    if (odometroFinal === null || odometroFinal <= dia.odometroInicial) {
+      return erro(`O odômetro final precisa ser maior que o inicial (${dia.odometroInicial} km).`);
+    }
+
+    const textoHoras = (rascunho.horas || '').trim();
+    const horas = lerHoras(textoHoras);
+    if (textoHoras && horas === null) return erro('Horas inválidas. Use 8, 8,5 ou 8:30.');
+
+    // Só entram as plataformas em que houve ganho ou corridas
+    const plataformas = config.plataformas
+      .map((nome, i) => ({
+        nome,
+        valor: lerNumero(rascunho['v' + i] || '') || 0,
+        corridas: Math.round(lerNumero(rascunho['c' + i] || '') || 0),
+      }))
+      .filter((p) => p.valor > 0 || p.corridas > 0);
+
+    const parametros = parametrosDoDia(config); // fotografia dos ajustes usada neste dia
+    const calculados = calcularDia(
+      { odometroInicial: dia.odometroInicial, odometroFinal, horas, plataformas, despesas: dia.despesas },
+      parametros
+    );
+
+    try {
+      await fecharDia(usuario.uid, dia.id, { odometroFinal, horas, plataformas, snapshot: parametros, calculados });
+      resultado = { ...dia, aberto: false, odometroFinal, horas, plataformas, snapshot: parametros, calculados };
+      dia = null;
+      rascunho = {};
+      desenhar();
+    } catch (e) {
+      erro('Não foi possível fechar o dia. Confira a internet e tente de novo.');
+    }
+  }
+
   async function descartar() {
     if (!confirmarDescarte) {
       confirmarDescarte = true;
@@ -138,6 +212,7 @@ export async function telaHoje(caixa, usuario) {
     try {
       await excluirDia(usuario.uid, dia.id);
       dia = null;
+      rascunho = {};
       confirmarDescarte = false;
       desenhar();
     } catch (e) {
@@ -158,7 +233,18 @@ export async function telaHoje(caixa, usuario) {
       gravarDespesas(dia.despesas.filter((_, i) => i !== Number(botao.dataset.remover)));
     } else if (botao.dataset.acao === 'abrir') abrir();
     else if (botao.dataset.acao === 'lancar') lancar();
+    else if (botao.dataset.acao === 'fechar') fechar();
     else if (botao.dataset.acao === 'descartar') descartar();
+    else if (botao.dataset.acao === 'novo') {
+      resultado = null;
+      desenhar();
+    }
+  });
+
+  // Guarda o que é digitado no fechamento, para não perder se a tela for redesenhada
+  caixa.addEventListener('input', (evento) => {
+    const campo = evento.target.dataset.f;
+    if (campo) rascunho[campo] = evento.target.value;
   });
 
   // Enter nos campos de texto faz a mesma coisa que o botão ao lado
