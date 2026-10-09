@@ -49,3 +49,12 @@ export async function listarDiasFechados(uid) {
   const resultado = await getDocs(query(colecao(uid), where('aberto', '==', false)));
   return resultado.docs.map((achado) => ({ id: achado.id, ...achado.data() }));
 }
+
+// Lê todos os dias (abertos e fechados). Usado no backup.
+export async function listarTodosDias(uid) {
+  const resultado = await getDocs(colecao(uid));
+  return resultado.docs.map((achado) => ({ id: achado.id, ...achado.data() }));
+}
+
+// Reabre um dia fechado para edição (os dados dele continuam guardados).
+export const reabrirDia = (uid, id) => updateDoc(doc(db, 'users', uid, 'dias', id), { aberto: true });

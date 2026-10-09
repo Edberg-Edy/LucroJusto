@@ -1,7 +1,9 @@
 // Tela de Ajustes: dados da moto, manutenção, custos fixos e plataformas.
 // Cada alteração é salva sozinha no Firestore (não existe botão "Salvar").
 import { carregarConfig, salvarConfig } from '../services/dados.js';
+import { listarTodosDias } from '../services/dias.js';
 import { manutencaoPorKm, combustivelPorKm, fixoPorDia } from './calculos.js';
+import { montarBackup, baixarBackup } from './backup.js';
 
 const dinheiro = (n) =>
   'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -133,8 +135,27 @@ export async function telaAjustes(caixa, usuario) {
           )
           .join('')}
         <button type="button" class="botao secundario" data-acao="adicionar:plataformas">+ Plataforma</button>
+      </section>
+
+      <section class="cartao">
+        <h2>Backup</h2>
+        <p class="suave">Baixa um arquivo com os seus ajustes e todos os seus dias. Guarde em um lugar seguro de vez em quando.</p>
+        <button type="button" class="botao secundario" data-acao="backup">Baixar backup (.json)</button>
+        <p class="suave" id="statusBackup" role="status"></p>
       </section>`;
     atualizarResumos();
+  }
+
+  async function fazerBackup() {
+    const aviso = caixa.querySelector('#statusBackup');
+    aviso.textContent = 'Gerando backup…';
+    try {
+      const dias = await listarTodosDias(usuario.uid);
+      baixarBackup(montarBackup(config, dias));
+      aviso.textContent = `Backup baixado (${dias.length} dias).`;
+    } catch (e) {
+      aviso.textContent = 'Não foi possível gerar o backup. Confira a internet e tente de novo.';
+    }
   }
 
   // Quando o usuário termina de editar um campo (sai dele ou confirma)
@@ -164,6 +185,11 @@ export async function telaAjustes(caixa, usuario) {
   caixa.addEventListener('click', (evento) => {
     const botao = evento.target.closest('[data-acao]');
     if (!botao) return;
+
+    if (botao.dataset.acao === 'backup') {
+      fazerBackup();
+      return;
+    }
 
     const [acao, lista, posicao] = botao.dataset.acao.split(':');
     const modelos = {

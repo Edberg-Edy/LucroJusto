@@ -478,3 +478,46 @@ input {
 .selo.verde { background: var(--verde-fundo); color: var(--verde); }
 .selo.amarelo { background: var(--amarelo-fundo); color: var(--amarelo); }
 .selo.vermelho { background: var(--vermelho-fundo); color: var(--vermelho); }
+
+/* ---- Etapa 8: editar, excluir, MEI e avisos ---- */
+.item-dia .x {
+  width: 44px;
+  flex: none;
+}
+
+.x.ed {
+  color: var(--destaque);
+}
+
+.x.cfm {
+  width: auto;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--vermelho-fundo);
+  color: var(--vermelho);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.aviso-topo {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--amarelo-fundo);
+  color: var(--amarelo);
+  font-weight: 700;
+}
+
+.medidor {
+  height: 10px;
+  margin: 10px 0;
+  border-radius: 6px;
+  background: var(--borda);
+}
+
+.medidor i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--destaque);
+}

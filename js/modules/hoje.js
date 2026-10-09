@@ -1,4 +1,5 @@
 // Aba Hoje. Abrir o dia (data + odômetro), lançar despesas e fechar o dia com o resultado.
+// Também serve para editar um dia já fechado (o Histórico reabre o dia e manda para cá).
 import { buscarDiaAberto, criarDia, atualizarDia, excluirDia, fecharDia } from '../services/dias.js';
 import { carregarConfig } from '../services/dados.js';
 import { calcularDia, parametrosDoDia, lerHoras } from './calculos.js';
@@ -24,7 +25,30 @@ export async function telaHoje(caixa, usuario) {
   let categoria = categorias[0]; // categoria de despesa selecionada
   let confirmarDescarte = false; // true depois do primeiro toque em "Descartar este dia"
   let resultado = null; // dia recém-fechado, mostrado até o usuário tocar em "Lançar outro dia"
-  let rascunho = {}; // o que já foi digitado no fechamento (não se perde ao lançar uma despesa)
+  // Um dia que já tem odômetro final foi fechado antes: estamos editando.
+  const emEdicao = () => dia && dia.odometroFinal !== undefined;
+
+  // Plataformas dos ajustes + as que o dia editado já usava (mesmo que tenham sido excluídas dos ajustes depois)
+  const nomesPlataformas = () => {
+    const nomes = [...config.plataformas];
+    ((dia && dia.plataformas) || []).forEach((p) => {
+      if (!nomes.includes(p.nome)) nomes.push(p.nome);
+    });
+    return nomes;
+  };
+
+  // Ao editar, os campos do fechamento já vêm preenchidos com o que foi salvo.
+  function rascunhoDoDia() {
+    const r = { odometroFinal: String(dia.odometroFinal), horas: dia.horas ? String(dia.horas).replace('.', ',') : '' };
+    nomesPlataformas().forEach((nome, i) => {
+      const p = dia.plataformas.find((x) => x.nome === nome);
+      r['v' + i] = p && p.valor ? String(p.valor).replace('.', ',') : '';
+      r['c' + i] = p && p.corridas ? String(p.corridas) : '';
+    });
+    return r;
+  }
+
+  let rascunho = emEdicao() ? rascunhoDoDia() : {}; // o que já foi digitado no fechamento (não se perde ao lançar uma despesa)
 
   const mostrarErro = (texto, id = 'erro') => {
     const el = caixa.querySelector('#' + id);
@@ -65,7 +89,7 @@ export async function telaHoje(caixa, usuario) {
 
     caixa.innerHTML = `
       <section class="cartao">
-        <h1>Dia aberto: ${dataBR(dia.data)}</h1>
+        <h1>${emEdicao() ? 'Editando' : 'Dia aberto'}: ${dataBR(dia.data)}</h1>
         <p class="suave">Odômetro inicial: ${dia.odometroInicial} km</p>
       </section>
 
@@ -98,7 +122,7 @@ export async function telaHoje(caixa, usuario) {
       </section>
 
       <section class="cartao">
-        <h2>Fechar o dia</h2>
+        <h2>${emEdicao() ? 'Salvar alterações' : 'Fechar o dia'}</h2>
         <label>Odômetro no fim (km)
           <input type="text" inputmode="decimal" data-f="odometroFinal" value="${r('odometroFinal')}">
         </label>
@@ -106,7 +130,7 @@ export async function telaHoje(caixa, usuario) {
           <input type="text" data-f="horas" value="${r('horas')}">
         </label>
         <div class="linha l3p cab"><span>Plataforma</span><span>Ganho (R$)</span><span>Corridas</span></div>
-        ${config.plataformas
+        ${nomesPlataformas()
           .map(
             (nome, i) => `
           <div class="linha l3p">
@@ -117,13 +141,17 @@ export async function telaHoje(caixa, usuario) {
           )
           .join('')}
         <p class="erro" id="erroFechar" role="alert"></p>
-        <button type="button" class="botao" data-acao="fechar">Fechar o dia</button>
+        <button type="button" class="botao" data-acao="fechar">${emEdicao() ? 'Salvar alterações' : 'Fechar o dia'}</button>
       </section>
 
       <section class="cartao">
-        <button type="button" class="botao secundario" data-acao="descartar">
+        ${
+          emEdicao()
+            ? '<button type="button" class="botao secundario" data-acao="cancelar">Cancelar edição</button>'
+            : `<button type="button" class="botao secundario" data-acao="descartar">
           ${confirmarDescarte ? 'Toque de novo para descartar o dia' : 'Descartar este dia'}
-        </button>
+        </button>`
+        }
       </section>`;
   }
 
@@ -172,7 +200,7 @@ export async function telaHoje(caixa, usuario) {
     if (textoHoras && horas === null) return erro('Horas inválidas. Use 8, 8,5 ou 8:30.');
 
     // Só entram as plataformas em que houve ganho ou corridas
-    const plataformas = config.plataformas
+    const plataformas = nomesPlataformas()
       .map((nome, i) => ({
         nome,
         valor: lerNumero(rascunho['v' + i] || '') || 0,
@@ -180,7 +208,8 @@ export async function telaHoje(caixa, usuario) {
       }))
       .filter((p) => p.valor > 0 || p.corridas > 0);
 
-    const parametros = parametrosDoDia(config); // fotografia dos ajustes usada neste dia
+    // Dia novo usa os ajustes de hoje. Dia editado mantém a fotografia que ele já tinha.
+    const parametros = emEdicao() && dia.snapshot ? dia.snapshot : parametrosDoDia(config);
     const calculados = calcularDia(
       { odometroInicial: dia.odometroInicial, odometroFinal, horas, plataformas, despesas: dia.despesas },
       parametros
@@ -194,6 +223,34 @@ export async function telaHoje(caixa, usuario) {
       desenhar();
     } catch (e) {
       erro('Não foi possível fechar o dia. Confira a internet e tente de novo.');
+    }
+  }
+
+  // Cancela a edição: volta o dia ao estado fechado, recalculando com o que está salvo (despesas podem ter mudado).
+  async function cancelarEdicao() {
+    try {
+      const calculados = calcularDia(
+        {
+          odometroInicial: dia.odometroInicial,
+          odometroFinal: dia.odometroFinal,
+          horas: dia.horas ?? null,
+          plataformas: dia.plataformas,
+          despesas: dia.despesas,
+        },
+        dia.snapshot
+      );
+      await fecharDia(usuario.uid, dia.id, {
+        odometroFinal: dia.odometroFinal,
+        horas: dia.horas ?? null,
+        plataformas: dia.plataformas,
+        snapshot: dia.snapshot,
+        calculados,
+      });
+      dia = null;
+      rascunho = {};
+      desenhar();
+    } catch (e) {
+      mostrarErro('Não foi possível cancelar. Tente de novo.');
     }
   }
 
@@ -235,6 +292,7 @@ export async function telaHoje(caixa, usuario) {
     else if (botao.dataset.acao === 'lancar') lancar();
     else if (botao.dataset.acao === 'fechar') fechar();
     else if (botao.dataset.acao === 'descartar') descartar();
+    else if (botao.dataset.acao === 'cancelar') cancelarEdicao();
     else if (botao.dataset.acao === 'novo') {
       resultado = null;
       desenhar();

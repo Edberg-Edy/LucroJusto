@@ -18,9 +18,9 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 | 3 | Regras do Firestore e Ajustes | ✅ v0.3 |
 | 4 | Cálculos com testes | ✅ v0.4 |
 | 5 | Abrir o dia e despesas | ✅ v0.5 |
-| 6 | Fechar o dia e resultado | 🚧 em teste |
-| 7 | Histórico semanal | ⏳ |
-| 8 | Editar, excluir, limite do MEI e backup | ⏳ |
+| 6 | Fechar o dia e resultado | ✅ v0.6 |
+| 7 | Histórico semanal | ✅ v0.7 |
+| 8 | Editar, excluir, limite do MEI e backup | 🚧 em teste |
 | 9 | Fechamento mensal | ⏳ |
 | 10 | PWA, offline e deploy | ⏳ |
 
@@ -31,11 +31,12 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 - Sem Copilot no fluxo: o código vem completo, é testado e commitado por etapa.
 - Firestore na região São Paulo (`southamerica-east1`). As regras foram publicadas à mão no console; `firestore.rules` guarda a cópia.
 - Ganho por corrida considera só as plataformas que informaram o número de corridas.
+- Editar um dia reabre o dia e mantém a fotografia de parâmetros dele (mudar o litro depois não altera o passado).
 - Testes dos cálculos com `npm test` (executor nativo do Node, sem bibliotecas).
 
 ## Próximo passo
 
-Fechar a etapa 6 (fechar o dia e resultado) e seguir para a etapa 7 (histórico semanal).
+Fechar a etapa 8 (editar, excluir, limite do MEI e backup) e seguir para a etapa 9 (fechamento mensal).
 
 ## Pendências e ideias
 

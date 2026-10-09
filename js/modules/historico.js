@@ -1,6 +1,7 @@
-// Aba Histórico. Etapa 7: visão da semana com gráficos, resumo, ranking por plataforma e lista de dias.
-// (Editar, excluir e o limite do MEI chegam na Etapa 8.)
-import { listarDiasFechados } from '../services/dias.js';
+// Aba Histórico: semana com gráficos, resumo, ranking por plataforma, lista de dias (com editar e excluir) e limite do MEI.
+import { listarDiasFechados, buscarDiaAberto, reabrirDia, excluirDia } from '../services/dias.js';
+import { carregarConfig } from '../services/dados.js';
+import { faturadoNoAno, usoDoLimite } from './mei.js';
 import { resumoDaSemana, inicioDaSemana, datasDaSemana, somarDias, variacao } from './semana.js';
 import { htmlGraficoLucro, htmlGraficoGastos, maiorValor } from './graficos.js';
 import { htmlResultado } from './resultado.js';
@@ -14,8 +15,9 @@ export async function telaHistorico(caixa, usuario) {
   caixa.innerHTML = '<p class="suave">Carregando histórico…</p>';
 
   let dias;
+  let config;
   try {
-    dias = await listarDiasFechados(usuario.uid);
+    [dias, config] = await Promise.all([listarDiasFechados(usuario.uid), carregarConfig(usuario.uid)]);
   } catch (e) {
     caixa.innerHTML = `<section class="cartao"><h1>Histórico</h1>
       <p class="erro">Não foi possível carregar o histórico (${esc(e.code || 'erro')}). Confira a internet.</p></section>`;
@@ -26,6 +28,8 @@ export async function telaHistorico(caixa, usuario) {
   let inicio = semanaAtual; // segunda-feira da semana que está na tela
   let selecionado = null; // dia tocado no gráfico (filtra a lista)
   let verDia = null; // dia aberto em detalhe
+  let aviso = ''; // mensagem curta (ex.: dia excluído)
+  let confirmarExcluir = null; // id do dia que aguarda o segundo toque em ✕
 
   function desenhar() {
     if (verDia) {
@@ -42,11 +46,16 @@ export async function telaHistorico(caixa, usuario) {
     const v = variacao(t.lucro, anterior.totais.lucro);
     const textoVariacao = v === null ? '—' : `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
+    const ano = datas[3].slice(0, 4);
+    const faturado = faturadoNoAno(dias, ano);
+    const mei = usoDoLimite(faturado, config.limiteMei);
+
     const lista = dias
       .filter((d) => datas.includes(d.data) && (!selecionado || d.data === selecionado))
       .sort((a, b) => (a.data < b.data ? 1 : -1));
 
     caixa.innerHTML = `
+      ${aviso ? `<p class="aviso-topo" role="status">${esc(aviso)}</p>` : ''}
       <section class="cartao">
         <div class="nav-semana">
           <button type="button" class="ghost" data-semana="anterior">‹ Anterior</button>
@@ -107,17 +116,75 @@ export async function telaHistorico(caixa, usuario) {
               <small>ganho ${dinheiro(d.calculados.faturamento)} · gasto ${dinheiro(d.calculados.gastos)}</small>
             </button>
             <span class="selo ${d.calculados.status}">${selo[d.calculados.status]}</span>
+            <button type="button" class="x ed" data-editar="${d.id}" aria-label="Editar dia">✎</button>
+            <button type="button" class="x ${confirmarExcluir === d.id ? 'cfm' : ''}" data-excluir="${d.id}" aria-label="Excluir dia">${confirmarExcluir === d.id ? 'Excluir?' : '✕'}</button>
           </div>`
                 )
                 .join('')
             : '<p class="suave">Nenhum dia fechado aqui.</p>'
         }
+      </section>
+
+      <section class="cartao">
+        <h2>Limite do MEI em ${ano}</h2>
+        ${linha('Faturado no ano (lançado aqui)', dinheiro(faturado))}
+        ${linha('Limite anual', dinheiro(config.limiteMei))}
+        <div class="medidor" role="img" aria-label="${Math.round(mei.percentual)}% do limite usado"><i style="width:${mei.percentual}%"></i></div>
+        <p class="suave">${
+          mei.estourou
+            ? 'Você passou do limite lançado aqui. Procure um contador.'
+            : `Você usou ${Math.round(mei.percentual)}% do limite. Restam ${dinheiro(mei.restante)}.`
+        } Conta só o que foi lançado no app.</p>
       </section>`;
+  }
+
+  // Edição: reabre o dia e leva para a aba Hoje. Só um dia pode estar aberto por vez.
+  async function editar(id) {
+    try {
+      if (await buscarDiaAberto(usuario.uid)) {
+        aviso = 'Já existe um dia aberto. Feche ou descarte esse dia na aba Hoje antes de editar outro.';
+        return desenhar();
+      }
+      await reabrirDia(usuario.uid, id);
+      location.hash = 'hoje';
+    } catch (e) {
+      aviso = 'Não foi possível abrir o dia para edição. Confira a internet.';
+      desenhar();
+    }
+  }
+
+  // Exclusão: o primeiro toque pede confirmação, o segundo exclui.
+  async function excluir(id) {
+    if (confirmarExcluir !== id) {
+      confirmarExcluir = id;
+      desenhar();
+      setTimeout(() => {
+        if (confirmarExcluir === id) {
+          confirmarExcluir = null;
+          desenhar();
+        }
+      }, 4000);
+      return;
+    }
+    try {
+      await excluirDia(usuario.uid, id);
+      dias = dias.filter((d) => d.id !== id);
+      aviso = 'Dia excluído.';
+      selecionado = null;
+    } catch (e) {
+      aviso = 'Não foi possível excluir. Confira a internet.';
+    }
+    confirmarExcluir = null;
+    desenhar();
   }
 
   caixa.addEventListener('click', (evento) => {
     const botao = evento.target.closest('button');
     if (!botao || botao.disabled) return;
+    aviso = '';
+
+    if (botao.dataset.editar) return editar(botao.dataset.editar);
+    if (botao.dataset.excluir) return excluir(botao.dataset.excluir);
 
     if (botao.dataset.semana === 'anterior') {
       inicio = somarDias(inicio, -7);
