@@ -358,3 +358,123 @@ input {
   margin: -4px 4px 12px;
   font-size: 14px;
 }
+
+/* ---- Etapa 7: histórico semanal ---- */
+.nav-semana {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ghost {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--destaque);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ghost:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 150px;
+  margin: 10px 0;
+}
+
+.barra-dia {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.barra-dia i {
+  display: block;
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+}
+
+.barra-dia i.verde { background: var(--verde); }
+.barra-dia i.amarelo { background: var(--amarelo); }
+.barra-dia i.vermelho { background: var(--vermelho); }
+.barra-dia i.neutra { background: var(--suave); opacity: 0.55; }
+.barra-dia i.vazio { background: var(--borda); }
+
+.barra-dia small {
+  min-height: 14px;
+  color: var(--suave);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.barra-dia small.verde { color: var(--verde); }
+.barra-dia small.amarelo { color: var(--amarelo); }
+.barra-dia small.vermelho { color: var(--vermelho); }
+
+.barra-dia[aria-pressed="true"] span {
+  text-decoration: underline;
+}
+
+.legenda {
+  font-size: 14px;
+}
+
+.legenda .verde { color: var(--verde); font-weight: 800; }
+.legenda .amarelo { color: var(--amarelo); font-weight: 800; }
+.legenda .vermelho { color: var(--vermelho); font-weight: 800; }
+
+.item-dia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--borda);
+}
+
+.item-dia .ver {
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-dia small {
+  color: var(--suave);
+  font-weight: 500;
+}
+
+.selo {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.selo.verde { background: var(--verde-fundo); color: var(--verde); }
+.selo.amarelo { background: var(--amarelo-fundo); color: var(--amarelo); }
+.selo.vermelho { background: var(--vermelho-fundo); color: var(--vermelho); }

@@ -43,3 +43,9 @@ export const fecharDia = (uid, id, fechamento) =>
     aberto: false,
     fechadoEm: serverTimestamp(),
   });
+
+// Lê todos os dias já fechados (o histórico é montado a partir deles).
+export async function listarDiasFechados(uid) {
+  const resultado = await getDocs(query(colecao(uid), where('aberto', '==', false)));
+  return resultado.docs.map((achado) => ({ id: achado.id, ...achado.data() }));
+}

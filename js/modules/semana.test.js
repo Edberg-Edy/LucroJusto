@@ -1,0 +1,88 @@
+// Testes do histórico semanal. Para rodar: npm test
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { somarDias, inicioDaSemana, datasDaSemana, resumoDaSemana, variacao } from './semana.js';
+
+// Cria um dia fechado de exemplo
+const dia = (data, lucro, gastos, plataformas = [{ nome: 'iFood', valor: 100, corridas: 4 }]) => ({
+  data,
+  snapshot: { meta: 200 },
+  calculados: { lucro, gastos, faturamento: lucro + gastos, guardar: 20, km: 100 },
+  plataformas,
+});
+
+test('somarDias passa de mês e de ano', () => {
+  assert.equal(somarDias('2026-09-30', 1), '2026-10-01');
+  assert.equal(somarDias('2026-12-31', 1), '2027-01-01');
+  assert.equal(somarDias('2026-10-05', -7), '2026-09-28');
+});
+
+test('a semana começa na segunda e termina no domingo', () => {
+  assert.equal(inicioDaSemana('2026-10-08'), '2026-10-05'); // quinta-feira
+  assert.equal(inicioDaSemana('2026-10-05'), '2026-10-05'); // a própria segunda
+  assert.equal(inicioDaSemana('2026-10-11'), '2026-10-05'); // domingo
+  const datas = datasDaSemana('2026-09-28');
+  assert.equal(datas.length, 7);
+  assert.equal(datas[0], '2026-09-28');
+  assert.equal(datas[6], '2026-10-04'); // atravessa o mês
+});
+
+test('resumo da semana soma só os dias dentro das datas', () => {
+  const datas = datasDaSemana('2026-10-05');
+  const dias = [
+    dia('2026-10-05', 250, 50), // segunda
+    dia('2026-10-07', 100, 60), // quarta
+    dia('2026-10-12', 999, 1), // semana seguinte: deve ficar de fora
+  ];
+  const r = resumoDaSemana(dias, datas);
+  assert.equal(r.porDia.length, 7);
+  assert.equal(r.totais.lucro, 350);
+  assert.equal(r.totais.gastos, 110);
+  assert.equal(r.totais.diasTrabalhados, 2);
+  assert.equal(r.totais.mediaPorDia, 175);
+  assert.equal(r.totais.guardar, 40);
+  assert.equal(r.totais.km, 200);
+});
+
+test('cada dia recebe a cor do farol; dias sem lançamento ficam vazios', () => {
+  const r = resumoDaSemana([dia('2026-10-05', 250, 50), dia('2026-10-06', 80, 50), dia('2026-10-07', -10, 50)], datasDaSemana('2026-10-05'));
+  assert.equal(r.porDia[0].status, 'verde');
+  assert.equal(r.porDia[1].status, 'amarelo');
+  assert.equal(r.porDia[2].status, 'vermelho');
+  assert.equal(r.porDia[3].tem, false);
+  assert.equal(r.porDia[3].status, null);
+});
+
+test('dois lançamentos na mesma data viram uma coluna só', () => {
+  const r = resumoDaSemana([dia('2026-10-05', 100, 40), dia('2026-10-05', 150, 60)], datasDaSemana('2026-10-05'));
+  assert.equal(r.porDia[0].lucro, 250);
+  assert.equal(r.totais.diasTrabalhados, 1);
+});
+
+test('semana sem dias: tudo zerado e média vazia', () => {
+  const r = resumoDaSemana([], datasDaSemana('2026-10-05'));
+  assert.equal(r.totais.lucro, 0);
+  assert.equal(r.totais.mediaPorDia, null);
+  assert.deepEqual(r.plataformas, []);
+});
+
+test('ranking por plataforma soma valores e corridas, do maior para o menor', () => {
+  const r = resumoDaSemana(
+    [
+      dia('2026-10-05', 100, 0, [{ nome: 'iFood', valor: 100, corridas: 4 }, { nome: '99', valor: 40, corridas: 0 }]),
+      dia('2026-10-06', 100, 0, [{ nome: 'iFood', valor: 60, corridas: 0 }, { nome: '99', valor: 90, corridas: 3 }]),
+    ],
+    datasDaSemana('2026-10-05')
+  );
+  assert.equal(r.plataformas[0].nome, 'iFood'); // 160 contra 130
+  assert.equal(r.plataformas[0].valor, 160);
+  assert.equal(r.plataformas[0].corridas, 4);
+  assert.equal(r.plataformas[0].valorComCorridas, 100); // os 60 sem corridas informadas não entram
+  assert.equal(r.plataformas[1].valorComCorridas, 90);
+});
+
+test('variação entre semanas', () => {
+  assert.equal(variacao(150, 100), 50);
+  assert.equal(variacao(50, 100), -50);
+  assert.equal(variacao(10, 0), null);
+});
