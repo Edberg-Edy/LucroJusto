@@ -20,8 +20,8 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 | 5 | Abrir o dia e despesas | ✅ v0.5 |
 | 6 | Fechar o dia e resultado | ✅ v0.6 |
 | 7 | Histórico semanal | ✅ v0.7 |
-| 8 | Editar, excluir, limite do MEI e backup | 🚧 em teste |
-| 9 | Fechamento mensal | ⏳ |
+| 8 | Editar, excluir, limite do MEI e backup | ✅ v0.8 |
+| 9 | Fechamento mensal | 🚧 em teste |
 | 10 | PWA, offline e deploy | ⏳ |
 
 ## Decisões recentes
@@ -33,12 +33,13 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 - Ganho por corrida considera só as plataformas que informaram o número de corridas.
 - Editar um dia reabre o dia e mantém a fotografia de parâmetros dele (mudar o litro depois não altera o passado).
 - Testes dos cálculos com `npm test` (executor nativo do Node, sem bibliotecas).
+- Fechar o mês só é possível quando ele terminou (a partir do último dia). Mês fechado trava a edição e a exclusão dos dias e não aceita dias novos; o checklist (DAS, reserva) continua editável porque o DAS vence no dia 20 do mês seguinte.
 
 ## Próximo passo
 
-Fechar a etapa 8 (editar, excluir, limite do MEI e backup) e seguir para a etapa 9 (fechamento mensal).
+Fechar a etapa 9 (fechamento mensal) e seguir para a etapa 10 (PWA, offline e deploy).
 
 ## Pendências e ideias
 
-- Visão mensal e checklist do DAS (etapa 9).
 - Possível retorno do orçamento por rota no futuro.
+- Restaurar backup (hoje o app só baixa o arquivo).

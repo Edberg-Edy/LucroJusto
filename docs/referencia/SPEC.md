@@ -66,8 +66,10 @@ Valores padrão: meta 200, 35 km/l, litro R$ 6,20, 24 dias/mês, limite MEI R$ 8
 
 ## Fechamento mensal
 
-- Visão automática do mês escolhido: faturamento, gastos (separados em combustível, manutenção, despesas e fixos), lucro, **valor a guardar**, dias trabalhados, média por dia, km, corridas, ganho por km, ganho por corrida, melhor e pior dia, comparação com o mês anterior, ranking por plataforma.
-- Botão "Fechar o mês" com checklist: DAS pago (vence dia 20) e valor guardado transferido. Ao fechar, grava os totais em `meses/{YYYY-MM}` e o mês passa a ser somente leitura (com opção de reabrir).
+- Na aba Histórico, o alternador **Semana / Mês** troca a visão. A visão do mês é calculada na hora a partir dos dias fechados: faturamento, gastos (combustível, manutenção, despesas e custos fixos), lucro, **valor a guardar**, dias trabalhados, média por dia, km, corridas, ganho por km, ganho por corrida, melhor e pior dia, comparação com o mês anterior e ranking por plataforma.
+- Botão "Fechar o mês": só habilitado quando o mês terminou (do último dia dele em diante) e há pelo menos um dia fechado. Fica bloqueado se existir um dia aberto no mês. Grava `meses/{YYYY-MM}` com `fechado: true`, `fechadoEm` e os `totais`.
+- Mês fechado trava os **dias**: não podem ser editados nem excluídos, e não se pode abrir dia novo nele (a aba Hoje avisa). "Reabrir o mês" libera.
+- O checklist (DAS pago, valor guardado transferido) e a observação **continuam editáveis mesmo com o mês fechado**, porque o DAS vence no dia 20 do mês seguinte. São gravados na hora em `meses/{YYYY-MM}` (`checklist` e `observacao`).
 
 ## Regras do Firestore
 

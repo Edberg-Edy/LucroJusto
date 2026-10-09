@@ -2,6 +2,7 @@
 // Também serve para editar um dia já fechado (o Histórico reabre o dia e manda para cá).
 import { buscarDiaAberto, criarDia, atualizarDia, excluirDia, fecharDia } from '../services/dias.js';
 import { carregarConfig } from '../services/dados.js';
+import { mesEstaFechado } from '../services/meses.js';
 import { calcularDia, parametrosDoDia, lerHoras } from './calculos.js';
 import { htmlResultado } from './resultado.js';
 import { hojeISO, dataBR, lerNumero, dinheiro, esc } from './formatos.js';
@@ -172,6 +173,15 @@ export async function telaHoje(caixa, usuario) {
 
     if (!data || data > hojeISO()) return mostrarErro('Escolha uma data válida (hoje ou anterior).');
     if (odometro === null) return mostrarErro('Digite o odômetro inicial.');
+
+    // Mês fechado não aceita dias novos (reabra o mês no Histórico)
+    try {
+      if (await mesEstaFechado(usuario.uid, data.slice(0, 7))) {
+        return mostrarErro('Este mês está fechado. Reabra o mês no Histórico para lançar dias nele.');
+      }
+    } catch (e) {
+      return mostrarErro('Não foi possível verificar o mês. Confira a internet e tente de novo.');
+    }
 
     try {
       dia = await criarDia(usuario.uid, { data, odometroInicial: odometro });

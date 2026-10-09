@@ -55,17 +55,7 @@ export function resumoDaSemana(dias, datas) {
     mediaPorDia: diasTrabalhados > 0 ? lucro / diasTrabalhados : null,
   };
 
-  // Ranking por plataforma. O valor por corrida só considera os dias em que as corridas foram informadas.
-  const mapa = {};
-  daSemana.forEach((dia) =>
-    dia.plataformas.forEach((p) => {
-      if (!mapa[p.nome]) mapa[p.nome] = { nome: p.nome, valor: 0, corridas: 0, valorComCorridas: 0 };
-      mapa[p.nome].valor += p.valor;
-      mapa[p.nome].corridas += p.corridas || 0;
-      if (p.corridas > 0) mapa[p.nome].valorComCorridas += p.valor;
-    })
-  );
-  const plataformas = Object.values(mapa).sort((a, b) => b.valor - a.valor);
+  const plataformas = rankingPlataformas(daSemana);
 
   return { porDia, totais, plataformas };
 }
@@ -73,4 +63,18 @@ export function resumoDaSemana(dias, datas) {
 // Variação em % entre duas semanas. Sem base de comparação (anterior = 0), devolve null.
 export function variacao(atual, anterior) {
   return anterior === 0 ? null : ((atual - anterior) / Math.abs(anterior)) * 100;
+}
+
+// Ranking por plataforma (usado na semana e no mês). O valor por corrida só considera os dias em que as corridas foram informadas.
+export function rankingPlataformas(dias) {
+  const mapa = {};
+  dias.forEach((dia) =>
+    dia.plataformas.forEach((p) => {
+      if (!mapa[p.nome]) mapa[p.nome] = { nome: p.nome, valor: 0, corridas: 0, valorComCorridas: 0 };
+      mapa[p.nome].valor += p.valor;
+      mapa[p.nome].corridas += p.corridas || 0;
+      if (p.corridas > 0) mapa[p.nome].valorComCorridas += p.valor;
+    })
+  );
+  return Object.values(mapa).sort((a, b) => b.valor - a.valor);
 }

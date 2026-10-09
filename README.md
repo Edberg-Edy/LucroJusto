@@ -30,19 +30,19 @@ O app calcula todo o resto.
 
 | Funcionalidade | Protótipo | Versão Firebase |
 |---|:---:|:---:|
-| Abrir e fechar o dia com data e odômetro | ✅ | ⏳ |
-| Ganho e corridas por plataforma (inclui Particular) | ✅ | ⏳ |
-| Despesas rápidas por categoria | ✅ | ⏳ |
-| Cálculo de lucro, ganho por km, por hora e por corrida | ✅ | ⏳ |
-| Farol do dia (verde, amarelo, vermelho) | ✅ | ⏳ |
-| Quadro "quanto guardar" e "livre para gastar" | ✅ | ⏳ |
-| Ajustes: meta, km/l, litro, manutenção por km, custos fixos, plataformas | ✅ | ⏳ |
-| Histórico semanal com gráfico de lucro e gráfico de gastos | ✅ | ⏳ |
-| Editar e excluir dias | ✅ | ⏳ |
-| Ranking por plataforma e limite anual do MEI | ✅ | ⏳ |
-| Backup manual (copiar e restaurar) | ✅ | ⏳ |
-| Login e dados na nuvem, com modo offline | ❌ | ⏳ |
-| Fechamento mensal com checklist | ❌ | ⏳ |
+| Abrir e fechar o dia com data e odômetro | ✅ | ✅ |
+| Ganho e corridas por plataforma (inclui Particular) | ✅ | ✅ |
+| Despesas rápidas por categoria | ✅ | ✅ |
+| Cálculo de lucro, ganho por km, por hora e por corrida | ✅ | ✅ |
+| Farol do dia (verde, amarelo, vermelho) | ✅ | ✅ |
+| Quadro "quanto guardar" e "livre para gastar" | ✅ | ✅ |
+| Ajustes: meta, km/l, litro, manutenção por km, custos fixos, plataformas | ✅ | ✅ |
+| Histórico semanal com gráfico de lucro e gráfico de gastos | ✅ | ✅ |
+| Editar e excluir dias | ✅ | ✅ |
+| Ranking por plataforma e limite anual do MEI | ✅ | ✅ |
+| Backup dos dados em arquivo (.json) | ✅ | ✅ |
+| Login e dados na nuvem, com modo offline | ❌ | ✅ |
+| Fechamento mensal com checklist | ❌ | ✅ |
 | App instalável (PWA) | ❌ | ⏳ |
 
 ## Regras de cálculo
@@ -68,7 +68,7 @@ Valores padrão: meta R$ 200, 35 km/l, litro R$ 6,20, 24 dias por mês, limite M
 ## Telas
 
 - **Hoje:** abrir o dia, despesas, fechar o dia e resultado.
-- **Histórico:** semana (segunda a domingo) com gráfico de lucro (cores do farol) e gráfico de gastos (cinza neutro), valores em R$ acima de cada coluna, resumo, ranking por plataforma, lista de dias e limite do MEI. Visão mensal na etapa 9.
+- **Histórico:** semana (segunda a domingo) com gráfico de lucro (cores do farol) e gráfico de gastos (cinza neutro), valores em R$ acima de cada coluna, resumo, ranking por plataforma, lista de dias e limite do MEI. Alternador Semana/Mês, com fechamento mensal e checklist do DAS.
 - **Ajustes:** parâmetros da moto, lista de manutenção, custos fixos, plataformas e backup.
 
 ## Stack
@@ -146,14 +146,14 @@ Valores consultados em outubro de 2026. Conferir sempre no Portal do Empreendedo
 ## Roadmap
 
 - [x] Etapa 1: base do projeto
-- [ ] Etapa 2: login com Google
-- [ ] Etapa 3: regras do Firestore e Ajustes
-- [ ] Etapa 4: cálculos com testes
-- [ ] Etapa 5: abrir o dia e despesas
-- [ ] Etapa 6: fechar o dia e resultado
-- [ ] Etapa 7: histórico semanal
-- [ ] Etapa 8: editar, excluir e limite do MEI
-- [ ] Etapa 9: fechamento mensal
+- [x] Etapa 2: login com Google
+- [x] Etapa 3: regras do Firestore e Ajustes
+- [x] Etapa 4: cálculos com testes
+- [x] Etapa 5: abrir o dia e despesas
+- [x] Etapa 6: fechar o dia e resultado
+- [x] Etapa 7: histórico semanal
+- [x] Etapa 8: editar, excluir e limite do MEI
+- [x] Etapa 9: fechamento mensal
 - [ ] Etapa 10: PWA, offline e deploy
 
 Detalhes de cada etapa em [docs/PASSO_A_PASSO.md](docs/PASSO_A_PASSO.md).

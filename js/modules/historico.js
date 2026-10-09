@@ -1,8 +1,11 @@
-// Aba Histórico: semana com gráficos, resumo, ranking por plataforma, lista de dias (com editar e excluir) e limite do MEI.
+// Aba Histórico: visão da semana (gráficos, resumo, lista de dias com editar e excluir, limite do MEI) e visão do mês (fechamento mensal).
 import { listarDiasFechados, buscarDiaAberto, reabrirDia, excluirDia } from '../services/dias.js';
 import { carregarConfig } from '../services/dados.js';
+import { listarMeses, salvarMes, fecharMes, reabrirMes } from '../services/meses.js';
 import { faturadoNoAno, usoDoLimite } from './mei.js';
 import { resumoDaSemana, inicioDaSemana, datasDaSemana, somarDias, variacao } from './semana.js';
+import { mesDe, somarMeses, mesJaTerminou, resumoDoMes } from './mes.js';
+import { htmlMes } from './visaoMes.js';
 import { htmlGraficoLucro, htmlGraficoGastos, maiorValor } from './graficos.js';
 import { htmlResultado } from './resultado.js';
 import { hojeISO, dataBR, dinheiro, esc } from './formatos.js';
@@ -16,8 +19,13 @@ export async function telaHistorico(caixa, usuario) {
 
   let dias;
   let config;
+  let meses; // meses já gravados (fechamento e checklist), por 'aaaa-mm'
   try {
-    [dias, config] = await Promise.all([listarDiasFechados(usuario.uid), carregarConfig(usuario.uid)]);
+    [dias, config, meses] = await Promise.all([
+      listarDiasFechados(usuario.uid),
+      carregarConfig(usuario.uid),
+      listarMeses(usuario.uid),
+    ]);
   } catch (e) {
     caixa.innerHTML = `<section class="cartao"><h1>Histórico</h1>
       <p class="erro">Não foi possível carregar o histórico (${esc(e.code || 'erro')}). Confira a internet.</p></section>`;
@@ -30,10 +38,36 @@ export async function telaHistorico(caixa, usuario) {
   let verDia = null; // dia aberto em detalhe
   let aviso = ''; // mensagem curta (ex.: dia excluído)
   let confirmarExcluir = null; // id do dia que aguarda o segundo toque em ✕
+  let modo = 'semana'; // 'semana' ou 'mes'
+  let ym = mesDe(hojeISO()); // mês que está na tela (aaaa-mm)
+
+  // Dia de um mês fechado fica travado: não pode ser editado nem excluído.
+  const travado = (d) => meses[mesDe(d.data)]?.fechado === true;
 
   function desenhar() {
     if (verDia) {
       caixa.innerHTML = `<button type="button" class="ghost" data-acao="voltar">← Voltar</button>${htmlResultado(verDia)}`;
+      return;
+    }
+
+    const avisoHtml = aviso ? `<p class="aviso-topo" role="status">${esc(aviso)}</p>` : '';
+    const seletor = `<div class="modo" role="group" aria-label="Período">
+      <button type="button" data-modo="semana" aria-pressed="${modo === 'semana'}">Semana</button>
+      <button type="button" data-modo="mes" aria-pressed="${modo === 'mes'}">Mês</button>
+    </div>`;
+
+    if (modo === 'mes') {
+      caixa.innerHTML =
+        avisoHtml +
+        seletor +
+        htmlMes({
+          ym,
+          resumo: resumoDoMes(dias, ym),
+          anterior: resumoDoMes(dias, somarMeses(ym, -1)),
+          info: meses[ym],
+          terminou: mesJaTerminou(ym, hojeISO()),
+          atual: mesDe(hojeISO()),
+        });
       return;
     }
 
@@ -55,7 +89,8 @@ export async function telaHistorico(caixa, usuario) {
       .sort((a, b) => (a.data < b.data ? 1 : -1));
 
     caixa.innerHTML = `
-      ${aviso ? `<p class="aviso-topo" role="status">${esc(aviso)}</p>` : ''}
+      ${avisoHtml}
+      ${seletor}
       <section class="cartao">
         <div class="nav-semana">
           <button type="button" class="ghost" data-semana="anterior">‹ Anterior</button>
@@ -116,8 +151,12 @@ export async function telaHistorico(caixa, usuario) {
               <small>ganho ${dinheiro(d.calculados.faturamento)} · gasto ${dinheiro(d.calculados.gastos)}</small>
             </button>
             <span class="selo ${d.calculados.status}">${selo[d.calculados.status]}</span>
-            <button type="button" class="x ed" data-editar="${d.id}" aria-label="Editar dia">✎</button>
-            <button type="button" class="x ${confirmarExcluir === d.id ? 'cfm' : ''}" data-excluir="${d.id}" aria-label="Excluir dia">${confirmarExcluir === d.id ? 'Excluir?' : '✕'}</button>
+            ${
+              travado(d)
+                ? '<span class="cadeado" role="img" aria-label="Mês fechado">🔒</span>'
+                : `<button type="button" class="x ed" data-editar="${d.id}" aria-label="Editar dia">✎</button>
+            <button type="button" class="x ${confirmarExcluir === d.id ? 'cfm' : ''}" data-excluir="${d.id}" aria-label="Excluir dia">${confirmarExcluir === d.id ? 'Excluir?' : '✕'}</button>`
+            }
           </div>`
                 )
                 .join('')
@@ -140,6 +179,11 @@ export async function telaHistorico(caixa, usuario) {
 
   // Edição: reabre o dia e leva para a aba Hoje. Só um dia pode estar aberto por vez.
   async function editar(id) {
+    const alvo = dias.find((d) => d.id === id);
+    if (alvo && travado(alvo)) {
+      aviso = 'Este mês está fechado. Reabra o mês para editar ou excluir dias.';
+      return desenhar();
+    }
     try {
       if (await buscarDiaAberto(usuario.uid)) {
         aviso = 'Já existe um dia aberto. Feche ou descarte esse dia na aba Hoje antes de editar outro.';
@@ -155,6 +199,11 @@ export async function telaHistorico(caixa, usuario) {
 
   // Exclusão: o primeiro toque pede confirmação, o segundo exclui.
   async function excluir(id) {
+    const alvo = dias.find((d) => d.id === id);
+    if (alvo && travado(alvo)) {
+      aviso = 'Este mês está fechado. Reabra o mês para editar ou excluir dias.';
+      return desenhar();
+    }
     if (confirmarExcluir !== id) {
       confirmarExcluir = id;
       desenhar();
@@ -178,10 +227,71 @@ export async function telaHistorico(caixa, usuario) {
     desenhar();
   }
 
+  // Fechar o mês: grava os totais e trava os dias dele.
+  async function fecharOMes() {
+    const resumo = resumoDoMes(dias, ym);
+    if (!mesJaTerminou(ym, hojeISO()) || resumo.totais.diasTrabalhados === 0) return;
+    try {
+      const aberto = await buscarDiaAberto(usuario.uid);
+      if (aberto && mesDe(aberto.data) === ym) {
+        aviso = 'Há um dia aberto neste mês. Feche ou descarte esse dia na aba Hoje antes de fechar o mês.';
+        return desenhar();
+      }
+      await fecharMes(usuario.uid, ym, resumo.totais);
+      meses[ym] = { ...(meses[ym] || {}), fechado: true, totais: resumo.totais };
+      aviso = 'Mês fechado. Os dias dele não podem mais ser editados nem excluídos.';
+    } catch (e) {
+      aviso = 'Não foi possível fechar o mês. Confira a internet e tente de novo.';
+    }
+    desenhar();
+  }
+
+  async function reabrirOMes() {
+    try {
+      await reabrirMes(usuario.uid, ym);
+      meses[ym] = { ...(meses[ym] || {}), fechado: false };
+      aviso = 'Mês reaberto.';
+    } catch (e) {
+      aviso = 'Não foi possível reabrir o mês. Confira a internet e tente de novo.';
+    }
+    desenhar();
+  }
+
+  // Checklist e observação: gravados na hora, mesmo com o mês fechado (o DAS só vence no mês seguinte).
+  caixa.addEventListener('change', async (evento) => {
+    const campo = evento.target;
+    const marca = campo.dataset.check;
+    if (!marca && !campo.hasAttribute('data-obs')) return;
+
+    const atual = meses[ym] || {};
+    const novo = marca
+      ? { checklist: { ...(atual.checklist || {}), [marca]: campo.checked } }
+      : { observacao: campo.value.trim() };
+    try {
+      await salvarMes(usuario.uid, ym, novo);
+      meses[ym] = { ...atual, ...novo };
+    } catch (e) {
+      aviso = 'Não foi possível salvar. Confira a internet e tente de novo.';
+    }
+    desenhar();
+  });
+
   caixa.addEventListener('click', (evento) => {
     const botao = evento.target.closest('button');
     if (!botao || botao.disabled) return;
     aviso = '';
+
+    if (botao.dataset.modo) {
+      modo = botao.dataset.modo;
+      selecionado = null;
+      return desenhar();
+    }
+    if (botao.dataset.mes) {
+      ym = somarMeses(ym, botao.dataset.mes === 'anterior' ? -1 : 1);
+      return desenhar();
+    }
+    if (botao.dataset.acao === 'fecharMes') return fecharOMes();
+    if (botao.dataset.acao === 'reabrirMes') return reabrirOMes();
 
     if (botao.dataset.editar) return editar(botao.dataset.editar);
     if (botao.dataset.excluir) return excluir(botao.dataset.excluir);
