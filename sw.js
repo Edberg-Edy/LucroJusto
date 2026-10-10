@@ -1,0 +1,53 @@
+// Service worker do LucroJusto: guarda o app no aparelho para abrir sem internet.
+// Os DADOS (dias, ajustes) não passam por aqui: o próprio Firestore guarda offline.
+// Ao mudar qualquer arquivo do app, aumente o número da VERSAO para o celular baixar a versão nova.
+const VERSAO = 'lucrojusto-v1';
+
+const ARQUIVOS = [
+  './', './index.html', './manifest.webmanifest', './css/style.css',
+  './js/app.js', './js/config/firebase-config.js', './js/config/padroes.js',
+  './js/services/firebase.js', './js/services/dados.js', './js/services/dias.js', './js/services/meses.js',
+  './js/modules/login.js', './js/modules/ajustes.js', './js/modules/calculos.js', './js/modules/formatos.js',
+  './js/modules/hoje.js', './js/modules/resultado.js', './js/modules/semana.js', './js/modules/graficos.js',
+  './js/modules/historico.js', './js/modules/mei.js', './js/modules/backup.js',
+  './js/modules/mes.js', './js/modules/visaoMes.js',
+  './assets/icons/icon-192.png', './assets/icons/icon-512.png',
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(VERSAO).then((c) => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((nomes) => Promise.all(nomes.filter((n) => n !== VERSAO).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// Só mexe no que é do app e nos scripts do Firebase (CDN). Banco e login passam direto.
+function deveGuardar(url) {
+  return url.origin === self.location.origin || url.href.startsWith('https://www.gstatic.com/firebasejs/');
+}
+
+// Abre rápido com o que está guardado e atualiza o guardado em segundo plano.
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (!deveGuardar(url)) return;
+
+  e.respondWith(
+    caches.open(VERSAO).then(async (cache) => {
+      const guardado = await cache.match(req, { ignoreSearch: true });
+      const rede = fetch(req)
+        .then((resp) => {
+          if (resp.ok) cache.put(req, resp.clone());
+          return resp;
+        })
+        .catch(() => guardado);
+      return guardado || rede;
+    })
+  );
+});

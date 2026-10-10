@@ -96,3 +96,10 @@ observarLogin((u) => {
 });
 
 desenhar();
+
+// PWA: registra o service worker (guarda o app para abrir sem internet).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
