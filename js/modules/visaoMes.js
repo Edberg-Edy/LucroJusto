@@ -7,8 +7,43 @@ const linha = (rotulo, valor, destaque = '') =>
   `<div class="resumo ${destaque}"><span>${rotulo}</span><b>${valor}</b></div>`;
 
 // ym = mês na tela; resumo/anterior = resumoDoMes deste mês e do anterior; info = documento do mês no banco (ou undefined);
-// terminou = o mês já acabou?; atual = mês de hoje (para desligar "Próximo")
-export function htmlMes({ ym, resumo, anterior, info, terminou, atual }) {
+// terminou = o mês já acabou?; atual = mês de hoje (para desligar "Próximo");
+// progresso = resultado de progressoDoMes (null quando o ajuste "Contas do mês" está em 0)
+function htmlProgresso(p, media) {
+  if (!p) {
+    return `
+    <section class="cartao">
+      <h2>Contas do mês</h2>
+      <p class="suave">Para acompanhar aqui quanto falta para fechar as contas, informe em Ajustes o campo "Contas do mês a cobrir".</p>
+    </section>`;
+  }
+
+  let texto;
+  if (p.atingiu) {
+    texto = `Contas do mês cobertas.${p.sobra > 0 ? ` Sobraram ${dinheiro(p.sobra)}.` : ''}`;
+  } else if (p.mesAtual && p.porDia !== null) {
+    texto =
+      `Faltam ${dinheiro(p.falta)}. Com cerca de ${p.diasRestantes} ${p.diasRestantes === 1 ? 'dia' : 'dias'} de trabalho até o fim do mês, ` +
+      `são ${dinheiro(p.porDia)} de lucro por dia.` +
+      (media !== null ? ` Sua média até agora: ${dinheiro(media)} por dia.` : '');
+  } else if (p.mesAtual) {
+    texto = `Faltam ${dinheiro(p.falta)} e não restam dias de trabalho neste mês.`;
+  } else {
+    texto = `As contas deste mês não foram cobertas: faltaram ${dinheiro(p.falta)}.`;
+  }
+
+  return `
+    <section class="cartao">
+      <h2>Contas do mês</h2>
+      ${linha('Contas a cobrir', dinheiro(p.contas))}
+      ${linha(p.mesAtual ? 'Lucro do mês até agora' : 'Lucro do mês', dinheiro(p.lucro))}
+      ${linha(p.atingiu ? 'Sobra' : 'Falta', dinheiro(p.atingiu ? p.sobra : p.falta), 'total')}
+      <div class="medidor" role="img" aria-label="${Math.round(p.percentual)}% das contas cobertas"><i style="width:${p.percentual}%"></i></div>
+      <p class="suave">${texto}</p>
+    </section>`;
+}
+
+export function htmlMes({ ym, resumo, anterior, info, terminou, atual, progresso }) {
   const t = resumo.totais;
   const fechado = info?.fechado === true;
   const marcas = info?.checklist || {};
@@ -62,6 +97,8 @@ export function htmlMes({ ym, resumo, anterior, info, terminou, atual }) {
           : ''
       }
     </section>
+
+    ${htmlProgresso(progresso, t.mediaPorDia)}
     </div>
 
     <div class="col b">

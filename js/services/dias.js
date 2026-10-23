@@ -1,10 +1,11 @@
 // Leitura e gravação dos dias no Firestore. Nada de tela aqui.
 // Cada dia fica em: users/{uid}/dias/{id}
+// As gravações usam gravar(): sem sinal elas não travam o app (ficam guardadas no aparelho e sincronizam depois).
 import {
   collection,
   doc,
-  addDoc,
   getDocs,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -14,8 +15,10 @@ import {
   writeBatch,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { db } from './firebase.js';
+import { gravar } from '../modules/gravacao.js';
 
 const colecao = (uid) => collection(db, 'users', uid, 'dias');
+const refDia = (uid, id) => doc(db, 'users', uid, 'dias', id);
 
 // Procura o dia que ainda está aberto (aberto: true). Devolve null se não houver nenhum.
 export async function buscarDiaAberto(uid) {
@@ -26,24 +29,29 @@ export async function buscarDiaAberto(uid) {
 }
 
 // Cria um dia aberto, ainda sem despesas nem ganhos.
+// O código do dia é gerado aqui no aparelho (doc sem id), assim não é preciso esperar o servidor para continuar.
 export async function criarDia(uid, { data, odometroInicial }) {
   const dia = { aberto: true, data, odometroInicial, despesas: [], plataformas: [] };
-  const ref = await addDoc(colecao(uid), { ...dia, criadoEm: serverTimestamp() });
+  const ref = doc(colecao(uid));
+  await gravar(setDoc(ref, { ...dia, criadoEm: serverTimestamp() }));
   return { id: ref.id, ...dia };
 }
 
 // Atualiza só os campos informados, ex.: atualizarDia(uid, id, { despesas: [...] })
-export const atualizarDia = (uid, id, campos) => updateDoc(doc(db, 'users', uid, 'dias', id), campos);
+export const atualizarDia = (uid, id, campos) => gravar(updateDoc(refDia(uid, id), campos));
 
-export const excluirDia = (uid, id) => deleteDoc(doc(db, 'users', uid, 'dias', id));
+export const excluirDia = (uid, id) => gravar(deleteDoc(refDia(uid, id)));
 
 // Fecha o dia: guarda odômetro final, horas, ganhos, a fotografia dos parâmetros e os valores calculados.
+// Devolve { sincronizado }: false quer dizer "salvo no aparelho, falta sincronizar" (sem sinal).
 export const fecharDia = (uid, id, fechamento) =>
-  updateDoc(doc(db, 'users', uid, 'dias', id), {
-    ...fechamento,
-    aberto: false,
-    fechadoEm: serverTimestamp(),
-  });
+  gravar(
+    updateDoc(refDia(uid, id), {
+      ...fechamento,
+      aberto: false,
+      fechadoEm: serverTimestamp(),
+    })
+  );
 
 // Lê todos os dias já fechados (o histórico é montado a partir deles).
 export async function listarDiasFechados(uid) {
@@ -58,14 +66,25 @@ export async function listarTodosDias(uid) {
 }
 
 // Reabre um dia fechado para edição (os dados dele continuam guardados).
-export const reabrirDia = (uid, id) => updateDoc(doc(db, 'users', uid, 'dias', id), { aberto: true });
+export const reabrirDia = (uid, id) => gravar(updateDoc(refDia(uid, id), { aberto: true }));
 
-// Atualiza vários dias de uma vez. lista = [{ id, campos }]. O Firestore aceita até 500 gravações por lote;
-// aqui usamos 400 por segurança.
-export async function atualizarDiasEmLote(uid, lista) {
+// Grava vários dias de uma vez. O Firestore aceita até 500 gravações por lote; aqui usamos 400 por segurança.
+// Devolve { sincronizado }: true só se todos os lotes foram confirmados pelo servidor a tempo.
+async function emLotes(lista, aplicar) {
+  let sincronizado = true;
   for (let i = 0; i < lista.length; i += 400) {
     const lote = writeBatch(db);
-    lista.slice(i, i + 400).forEach(({ id, campos }) => lote.update(doc(db, 'users', uid, 'dias', id), campos));
-    await lote.commit();
+    lista.slice(i, i + 400).forEach((item) => aplicar(lote, item));
+    const r = await gravar(lote.commit(), 6000);
+    if (!r.sincronizado) sincronizado = false;
   }
+  return { sincronizado };
 }
+
+// lista = [{ id, campos }]: atualiza os campos informados de cada dia.
+export const atualizarDiasEmLote = (uid, lista) =>
+  emLotes(lista, (lote, { id, campos }) => lote.update(refDia(uid, id), campos));
+
+// lista = [{ id, campos }]: grava cada dia inteiro (usado na restauração de backup). Mesmo código = sobrescreve.
+export const restaurarDias = (uid, lista) =>
+  emLotes(lista, (lote, { id, campos }) => lote.set(refDia(uid, id), campos));

@@ -4,7 +4,7 @@ import { carregarConfig } from '../services/dados.js';
 import { listarMeses, salvarMes, fecharMes, reabrirMes } from '../services/meses.js';
 import { faturadoNoAno, usoDoLimite } from './mei.js';
 import { resumoDaSemana, inicioDaSemana, datasDaSemana, somarDias, variacao } from './semana.js';
-import { mesDe, somarMeses, mesJaTerminou, resumoDoMes } from './mes.js';
+import { mesDe, somarMeses, mesJaTerminou, resumoDoMes, progressoDoMes } from './mes.js';
 import { htmlMes } from './visaoMes.js';
 import { htmlGraficoLucro, htmlGraficoGastos, maiorValor } from './graficos.js';
 import { htmlResultado } from './resultado.js';
@@ -20,11 +20,13 @@ export async function telaHistorico(caixa, usuario) {
   let dias;
   let config;
   let meses; // meses já gravados (fechamento e checklist), por 'aaaa-mm'
+  let diaAberto; // dia que está aberto ou em edição (não entra nos totais até ser salvo), ou null
   try {
-    [dias, config, meses] = await Promise.all([
+    [dias, config, meses, diaAberto] = await Promise.all([
       listarDiasFechados(usuario.uid),
       carregarConfig(usuario.uid),
       listarMeses(usuario.uid),
+      buscarDiaAberto(usuario.uid),
     ]);
   } catch (e) {
     caixa.innerHTML = `<section class="cartao"><h1>Histórico</h1>
@@ -50,7 +52,15 @@ export async function telaHistorico(caixa, usuario) {
       return;
     }
 
-    const avisoHtml = aviso ? `<p class="aviso-topo" role="status">${esc(aviso)}</p>` : '';
+    // Dia aberto/em edição fica fora dos totais: avisa e dá um atalho para a aba Hoje
+    const avisoAberto = diaAberto
+      ? `<p class="aviso-topo" role="status">${
+          diaAberto.odometroFinal !== undefined
+            ? `O dia ${dataBR(diaAberto.data)} está em edição e fora dos totais até você salvar.`
+            : `O dia ${dataBR(diaAberto.data)} está aberto e ainda não entra nos totais.`
+        } <button type="button" class="ghost" data-acao="irHoje">Ir para Hoje</button></p>`
+      : '';
+    const avisoHtml = (aviso ? `<p class="aviso-topo" role="status">${esc(aviso)}</p>` : '') + avisoAberto;
     const seletor = `<div class="modo" role="group" aria-label="Período">
       <button type="button" data-modo="semana" aria-pressed="${modo === 'semana'}">Semana</button>
       <button type="button" data-modo="mes" aria-pressed="${modo === 'mes'}">Mês</button>
@@ -67,6 +77,14 @@ export async function telaHistorico(caixa, usuario) {
           info: meses[ym],
           terminou: mesJaTerminou(ym, hojeISO()),
           atual: mesDe(hojeISO()),
+          progresso: progressoDoMes({
+            ym,
+            hoje: hojeISO(),
+            lucro: resumoDoMes(dias, ym).totais.lucro,
+            contas: config.contasMes,
+            diasPorMes: config.diasPorMes,
+            hojeFechado: dias.some((d) => d.data === hojeISO()),
+          }),
         });
       return;
     }
@@ -299,6 +317,10 @@ export async function telaHistorico(caixa, usuario) {
     if (botao.dataset.mes) {
       ym = somarMeses(ym, botao.dataset.mes === 'anterior' ? -1 : 1);
       return desenhar();
+    }
+    if (botao.dataset.acao === 'irHoje') {
+      location.hash = 'hoje';
+      return;
     }
     if (botao.dataset.acao === 'fecharMes') return fecharOMes();
     if (botao.dataset.acao === 'reabrirMes') return reabrirOMes();

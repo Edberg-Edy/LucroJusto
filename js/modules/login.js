@@ -5,7 +5,7 @@ import { configurado } from '../config/firebase-config.js';
 const mensagens = {
   'auth/popup-closed-by-user': 'Login cancelado.',
   'auth/popup-blocked': 'O navegador bloqueou a janela de login. Libere pop-ups para este site.',
-  'auth/unauthorized-domain': 'Endereço não autorizado no Firebase. Abra o app por http://localhost:5500.',
+  'auth/unauthorized-domain': 'Este endereço não está autorizado no Firebase. Adicione o domínio em Authentication > Settings > Authorized domains.',
   'auth/network-request-failed': 'Sem conexão com a internet.',
 };
 

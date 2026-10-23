@@ -8,6 +8,7 @@ import { htmlResultado } from './resultado.js';
 import { hojeISO, dataBR, lerNumero, dinheiro, esc } from './formatos.js';
 
 const categorias = ['Comida', 'Manutenção', 'Estacionamento', 'Multa', 'Outros'];
+const KM_ALERTA = 400; // acima disso o app pergunta se o odômetro está certo (pega erro de digitação)
 
 // "caixa" é o espaço da tela onde a aba aparece; "usuario" é quem está logado.
 export async function telaHoje(caixa, usuario) {
@@ -26,6 +27,7 @@ export async function telaHoje(caixa, usuario) {
   let categoria = categorias[0]; // categoria de despesa selecionada
   let confirmarDescarte = false; // true depois do primeiro toque em "Descartar este dia"
   let confirmarDataRepetida = null; // data que o usuário já confirmou manter, mesmo com outro dia nela
+  let confirmarKm = null; // odômetro final que o usuário já confirmou, mesmo com km muito alto
   let resultado = null; // dia recém-fechado, mostrado até o usuário tocar em "Lançar outro dia"
   // Um dia que já tem odômetro final foi fechado antes: estamos editando.
   const emEdicao = () => dia && dia.odometroFinal !== undefined;
@@ -80,7 +82,11 @@ export async function telaHoje(caixa, usuario) {
   }
 
   function desenharResultado() {
+    const aviso = resultado.pendente
+      ? '<p class="aviso-topo" role="status">Salvo no aparelho. Sem sinal agora: o dia sincroniza sozinho quando a internet voltar.</p>'
+      : '';
     caixa.innerHTML = `
+      ${aviso}
       ${htmlResultado(resultado)}
       <button type="button" class="botao estreito" data-acao="novo">Lançar outro dia</button>`;
   }
@@ -219,6 +225,12 @@ export async function telaHoje(caixa, usuario) {
       return erro(`O odômetro final precisa ser maior que o inicial (${dia.odometroInicial} km).`);
     }
 
+    const km = odometroFinal - dia.odometroInicial;
+    if (km > KM_ALERTA && confirmarKm !== odometroFinal) {
+      confirmarKm = odometroFinal;
+      return erro(`Isso dá ${Math.round(km)} km neste dia. Confere o odômetro final? Se estiver certo, toque em Salvar de novo.`);
+    }
+
     const textoHoras = (rascunho.horas || '').trim();
     const horas = lerHoras(textoHoras);
     if (textoHoras && horas === null) return erro('Horas inválidas. Use 8, 8,5 ou 8:30.');
@@ -261,9 +273,10 @@ export async function telaHoje(caixa, usuario) {
     );
 
     try {
-      await fecharDia(usuario.uid, dia.id, { data, odometroFinal, horas, plataformas, snapshot: parametros, calculados });
+      const gravado = await fecharDia(usuario.uid, dia.id, { data, odometroFinal, horas, plataformas, snapshot: parametros, calculados });
       confirmarDataRepetida = null;
-      resultado = { ...dia, data, aberto: false, odometroFinal, horas, plataformas, snapshot: parametros, calculados };
+      confirmarKm = null;
+      resultado = { ...dia, pendente: !gravado.sincronizado, data, aberto: false, odometroFinal, horas, plataformas, snapshot: parametros, calculados };
       dia = null;
       rascunho = {};
       desenhar();

@@ -79,3 +79,35 @@ export function resumoDoMes(dias, ym) {
     plataformas,
   };
 }
+// Acompanhamento do mês contra as contas pessoais (ajuste "Contas do mês").
+//   lucro       = lucro líquido do mês até agora (já descontados combustível, manutenção e custos fixos)
+//   contas      = quanto o lucro do mês precisa cobrir (0 ou vazio desliga o acompanhamento e devolve null)
+//   diasPorMes  = dias que você costuma trabalhar por mês (para estimar quantos dias de trabalho ainda restam)
+//   hojeFechado = o dia de hoje já foi lançado?
+// No mês atual estima os dias de trabalho que restam e quanto de lucro por dia falta para fechar as contas.
+export function progressoDoMes({ ym, hoje, lucro, contas, diasPorMes, hojeFechado }) {
+  if (!(contas > 0)) return null;
+
+  const falta = Math.max(0, contas - lucro);
+  const mesAtual = ym === mesDe(hoje);
+
+  let diasRestantes = 0;
+  if (mesAtual) {
+    const ultimo = ultimoDiaDoMes(ym);
+    const corridos = ultimo - Number(hoje.slice(8, 10)) + (hojeFechado ? 0 : 1); // dias do calendário que ainda restam
+    const estimados = Math.round((corridos * diasPorMes) / ultimo); // só uma parte deles é de trabalho
+    diasRestantes = corridos > 0 ? Math.max(hojeFechado ? 0 : 1, estimados) : 0; // se hoje ainda não foi lançado, conta ao menos hoje
+  }
+
+  return {
+    contas,
+    lucro,
+    falta,
+    sobra: Math.max(0, lucro - contas),
+    percentual: Math.min(100, Math.max(0, (lucro / contas) * 100)),
+    atingiu: lucro >= contas,
+    mesAtual,
+    diasRestantes,
+    porDia: mesAtual && falta > 0 && diasRestantes > 0 ? falta / diasRestantes : null,
+  };
+}

@@ -1,7 +1,7 @@
 // Testes do fechamento mensal. Para rodar: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { somarMeses, nomeDoMes, ultimoDiaDoMes, mesJaTerminou, resumoDoMes } from './mes.js';
+import { somarMeses, nomeDoMes, ultimoDiaDoMes, mesJaTerminou, resumoDoMes, progressoDoMes } from './mes.js';
 
 // Dia fechado de exemplo (só os campos que o resumo usa)
 const dia = (data, lucro, plataformas = [{ nome: 'iFood', valor: 100, corridas: 4 }]) => ({
@@ -70,4 +70,50 @@ test('com um dia só, melhor e pior são o mesmo', () => {
 test('ganho por corrida ignora plataformas sem corridas informadas', () => {
   const r = resumoDoMes([dia('2026-10-05', 80, [{ nome: 'A', valor: 100, corridas: 4 }, { nome: 'B', valor: 60 }])], '2026-10');
   assert.equal(r.totais.ganhoPorCorrida, 25);
+});
+
+// ---------- progresso do mês contra as contas ----------
+const base = { ym: '2026-10', hoje: '2026-10-22', lucro: 3000, contas: 5000, diasPorMes: 26, hojeFechado: true };
+
+test('sem contas informadas o acompanhamento fica desligado', () => {
+  assert.equal(progressoDoMes({ ...base, contas: 0 }), null);
+  assert.equal(progressoDoMes({ ...base, contas: undefined }), null);
+});
+
+test('mês atual: quanto falta, dias de trabalho que restam e lucro por dia necessário', () => {
+  // 22/10 já lançado: restam 9 dias no calendário (23 a 31); 9 × 26 ÷ 31 = 7,5 ≈ 8 dias de trabalho
+  const p = progressoDoMes(base);
+  assert.equal(p.falta, 2000);
+  assert.equal(p.percentual, 60);
+  assert.equal(p.atingiu, false);
+  assert.equal(p.diasRestantes, 8);
+  assert.equal(p.porDia, 250);
+});
+
+test('hoje ainda não lançado conta como dia de trabalho', () => {
+  const p = progressoDoMes({ ...base, hojeFechado: false });
+  assert.equal(p.diasRestantes, 8); // 10 dias corridos × 26 ÷ 31 = 8,4 ≈ 8
+  const ultimoDia = progressoDoMes({ ...base, hoje: '2026-10-31', hojeFechado: false, diasPorMes: 10 });
+  assert.equal(ultimoDia.diasRestantes, 1); // nunca menos que hoje
+});
+
+test('contas cobertas: atingiu, nada falta e sobra o excedente', () => {
+  const p = progressoDoMes({ ...base, lucro: 5600 });
+  assert.equal(p.atingiu, true);
+  assert.equal(p.falta, 0);
+  assert.equal(p.sobra, 600);
+  assert.equal(p.percentual, 100);
+  assert.equal(p.porDia, null);
+});
+
+test('mês que já passou não estima dias restantes', () => {
+  const p = progressoDoMes({ ...base, ym: '2026-09' });
+  assert.equal(p.mesAtual, false);
+  assert.equal(p.diasRestantes, 0);
+  assert.equal(p.porDia, null);
+  assert.equal(p.falta, 2000);
+});
+
+test('lucro negativo não gera percentual negativo', () => {
+  assert.equal(progressoDoMes({ ...base, lucro: -100 }).percentual, 0);
 });

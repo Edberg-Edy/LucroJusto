@@ -1,7 +1,7 @@
 // Service worker do LucroJusto: guarda o app no aparelho para abrir sem internet.
 // Os DADOS (dias, ajustes) não passam por aqui: o próprio Firestore guarda offline.
 // Ao mudar qualquer arquivo do app, aumente o número da VERSAO para o celular baixar a versão nova.
-const VERSAO = 'lucrojusto-v2';
+const VERSAO = 'lucrojusto-v3';
 
 const ARQUIVOS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
@@ -10,7 +10,7 @@ const ARQUIVOS = [
   './js/modules/login.js', './js/modules/ajustes.js', './js/modules/calculos.js', './js/modules/formatos.js',
   './js/modules/hoje.js', './js/modules/resultado.js', './js/modules/semana.js', './js/modules/graficos.js',
   './js/modules/historico.js', './js/modules/mei.js', './js/modules/backup.js',
-  './js/modules/mes.js', './js/modules/visaoMes.js',
+  './js/modules/mes.js', './js/modules/visaoMes.js', './js/modules/gravacao.js',
   './assets/icons/icon-192.png', './assets/icons/icon-512.png',
 ];
 

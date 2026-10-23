@@ -1,23 +1,21 @@
 // Tela de Ajustes: dados da moto, manutenção, custos fixos e plataformas.
 // Cada alteração é salva sozinha no Firestore (não existe botão "Salvar").
 import { carregarConfig, salvarConfig } from '../services/dados.js';
-import { listarTodosDias, listarDiasFechados, atualizarDiasEmLote } from '../services/dias.js';
-import { listarMeses } from '../services/meses.js';
+import { listarTodosDias, listarDiasFechados, atualizarDiasEmLote, restaurarDias } from '../services/dias.js';
+import { listarMeses, salvarMes } from '../services/meses.js';
 import { manutencaoPorKm, combustivelPorKm, fixoPorDia, parametrosDoDia, recalcularDiaFechado } from './calculos.js';
 import { mesDe } from './mes.js';
-import { montarBackup, baixarBackup } from './backup.js';
+import { montarBackup, baixarBackup, validarBackup, prepararRestauracao } from './backup.js';
+import { padroes } from '../config/padroes.js';
+import { dinheiro, esc, numero } from './formatos.js';
 
-const dinheiro = (n) =>
-  'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dinheiro3 = (n) =>
   'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-// Aceita vírgula ou ponto e nunca devolve negativo
-const numero = (t) => Math.max(0, parseFloat(String(t).replace(',', '.')) || 0);
 
 // Campos numéricos simples: [nome no banco, rótulo na tela]
 const campos = [
   ['meta', 'Meta diária de lucro (R$)'],
+  ['contasMes', 'Contas do mês a cobrir (R$, 0 = não usar)'],
   ['kmPorLitro', 'Km por litro da moto'],
   ['precoLitro', 'Preço do litro (R$)'],
   ['diasPorMes', 'Dias trabalhados por mês'],
@@ -39,6 +37,7 @@ export async function telaAjustes(caixa, usuario) {
 
   let status = '';
   let pendenteRecalculo = null; // depois do 1º toque em "Recalcular": { alvos, travados } aguardando o 2º toque
+  let pendenteRestauro = null; // depois de escolher o arquivo de backup: lista pronta aguardando a confirmação
 
   function mostrarStatus(texto) {
     status = texto;
@@ -49,8 +48,8 @@ export async function telaAjustes(caixa, usuario) {
   async function salvar() {
     mostrarStatus('Salvando…');
     try {
-      await salvarConfig(usuario.uid, config);
-      mostrarStatus('Salvo ✓');
+      const r = await salvarConfig(usuario.uid, config);
+      mostrarStatus(r.sincronizado ? 'Salvo ✓' : 'Salvo no aparelho. Sem sinal: sincroniza quando voltar.');
     } catch (e) {
       mostrarStatus('Não foi possível salvar. Tente de novo.');
     }
@@ -76,6 +75,7 @@ export async function telaAjustes(caixa, usuario) {
 
   function desenhar() {
     pendenteRecalculo = null;
+    pendenteRestauro = null;
     caixa.innerHTML = `
       <div class="painel ajustes">
       <div class="col a">
@@ -159,6 +159,11 @@ export async function telaAjustes(caixa, usuario) {
         <p class="suave">Baixa um arquivo com os seus ajustes e todos os seus dias. Guarde em um lugar seguro de vez em quando.</p>
         <button type="button" class="botao secundario" data-acao="backup">Baixar backup (.json)</button>
         <p class="suave" id="statusBackup" role="status"></p>
+        <h2 style="margin-top:16px">Restaurar um backup</h2>
+        <p class="suave">Escolha um arquivo de backup. Os dias do arquivo são gravados (dias com o mesmo código são sobrescritos) e nenhum outro dia é apagado. Seus ajustes atuais são substituídos pelos do arquivo.</p>
+        <button type="button" class="botao secundario" data-acao="restaurar">Escolher arquivo de backup…</button>
+        <input type="file" id="arquivoBackup" accept="application/json,.json" hidden>
+        <p class="suave" id="statusRestaurar" role="status"></p>
       </section>
       </div>
       </div>`;
@@ -169,9 +174,9 @@ export async function telaAjustes(caixa, usuario) {
     const aviso = caixa.querySelector('#statusBackup');
     aviso.textContent = 'Gerando backup…';
     try {
-      const dias = await listarTodosDias(usuario.uid);
-      baixarBackup(montarBackup(config, dias));
-      aviso.textContent = `Backup baixado (${dias.length} dias).`;
+      const [dias, meses] = await Promise.all([listarTodosDias(usuario.uid), listarMeses(usuario.uid)]);
+      baixarBackup(montarBackup(config, dias, new Date(), meses));
+      aviso.textContent = `Backup baixado (${dias.length} dias e ${Object.keys(meses).length} meses).`;
     } catch (e) {
       aviso.textContent = 'Não foi possível gerar o backup. Confira a internet e tente de novo.';
     }
@@ -238,8 +243,79 @@ export async function telaAjustes(caixa, usuario) {
     }
   }
 
+  // Restauração em duas etapas: 1) ler e conferir o arquivo; 2) o toque em "Confirmar" grava.
+  async function lerArquivoBackup(arquivo) {
+    const aviso = caixa.querySelector('#statusRestaurar');
+    const botao = caixa.querySelector('[data-acao="restaurar"]');
+    pendenteRestauro = null;
+    if (!arquivo) return;
+
+    let conteudo;
+    try {
+      conteudo = JSON.parse(await arquivo.text());
+    } catch (e) {
+      aviso.textContent = 'Não consegui ler este arquivo. Ele precisa ser um backup .json do LucroJusto.';
+      return;
+    }
+    const conferido = validarBackup(conteudo);
+    if (!conferido.ok) {
+      aviso.textContent = conferido.erro;
+      return;
+    }
+
+    const r = conferido.resumo;
+    pendenteRestauro = prepararRestauracao(conteudo);
+    botao.textContent = `Confirmar restauração (${r.dias} dias)`;
+    aviso.textContent =
+      `Backup válido: ${r.dias} dias` + (r.de ? ` (de ${r.de.split('-').reverse().join('/')} a ${r.ate.split('-').reverse().join('/')})` : '') +
+      `, ${r.meses} meses` + (r.abertos ? `, ${r.abertos} dia aberto ignorado` : '') +
+      '. Toque no botão para restaurar, ou escolha outro arquivo.';
+    setTimeout(() => {
+      if (pendenteRestauro) {
+        pendenteRestauro = null;
+        botao.textContent = 'Escolher arquivo de backup…';
+        aviso.textContent = '';
+      }
+    }, 20000);
+  }
+
+  async function restaurar() {
+    const aviso = caixa.querySelector('#statusRestaurar');
+    const botao = caixa.querySelector('[data-acao="restaurar"]');
+    const arquivoInput = caixa.querySelector('#arquivoBackup');
+
+    if (!pendenteRestauro) {
+      arquivoInput.value = ''; // permite escolher o mesmo arquivo de novo
+      arquivoInput.click();
+      return;
+    }
+
+    const preparado = pendenteRestauro;
+    pendenteRestauro = null;
+    botao.textContent = 'Escolher arquivo de backup…';
+    aviso.textContent = 'Restaurando…';
+    try {
+      Object.assign(config, padroes(), preparado.config); // valores novos que o backup não tinha ficam com o padrão
+      const gravacoes = [await salvarConfig(usuario.uid, config), await restaurarDias(usuario.uid, preparado.dias)];
+      for (const m of preparado.meses) gravacoes.push(await salvarMes(usuario.uid, m.ym, m.campos));
+
+      const tudo = gravacoes.every((g) => g.sincronizado);
+      desenhar(); // mostra os ajustes restaurados
+      const novo = caixa.querySelector('#statusRestaurar');
+      novo.textContent =
+        `Pronto: ${preparado.dias.length} dias e ${preparado.meses.length} meses restaurados.` +
+        (tudo ? '' : ' Sem sinal agora: vai sincronizar quando a internet voltar.');
+    } catch (e) {
+      aviso.textContent = 'Não foi possível restaurar. Confira a internet e tente de novo.';
+    }
+  }
+
   // Quando o usuário termina de editar um campo (sai dele ou confirma)
   caixa.addEventListener('change', (evento) => {
+    if (evento.target.id === 'arquivoBackup') {
+      lerArquivoBackup(evento.target.files[0]);
+      return;
+    }
     const campo = evento.target.closest('[data-k]');
     if (!campo) return;
 
@@ -272,6 +348,10 @@ export async function telaAjustes(caixa, usuario) {
     }
     if (botao.dataset.acao === 'recalcular') {
       recalcular();
+      return;
+    }
+    if (botao.dataset.acao === 'restaurar') {
+      restaurar();
       return;
     }
 
