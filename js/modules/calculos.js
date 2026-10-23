@@ -98,3 +98,20 @@ export function calcularDia(dia, p) {
     status: farol(lucro, p.meta),
   };
 }
+
+// Recalcula um dia JÁ FECHADO com parâmetros novos (os ajustes de agora).
+// Usa só os dados brutos do dia (odômetros, horas, ganhos e despesas) e devolve a nova fotografia e os novos valores.
+// Se o dia tiver odômetros inválidos, calcularDia lança RangeError: quem chama decide o que fazer.
+export function recalcularDiaFechado(dia, parametros) {
+  const calculados = calcularDia(
+    {
+      odometroInicial: dia.odometroInicial,
+      odometroFinal: dia.odometroFinal,
+      horas: dia.horas ?? null,
+      plataformas: dia.plataformas || [],
+      despesas: dia.despesas || [],
+    },
+    parametros
+  );
+  return { snapshot: parametros, calculados };
+}

@@ -575,3 +575,168 @@ input {
   opacity: 0.4;
   cursor: default;
 }
+/* ---- Etapa 11: layout para computador (telas largas) ----
+   No celular nada muda: os blocos .painel e .col ficam empilhados em uma coluna.
+   A partir de 900 px as abas vão para o topo e os cartões se distribuem em colunas. */
+.painel,
+.col {
+  display: block;
+}
+
+@media (min-width: 900px) {
+  body {
+    padding-top: 68px;
+  }
+
+  #tela {
+    max-width: 1360px;
+    padding: 28px 32px 48px;
+  }
+
+  /* Abas: da parte de baixo (polegar) para uma barra no topo (mouse) */
+  #abas {
+    top: 0;
+    bottom: auto;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 10px max(32px, calc((100vw - 1296px) / 2));
+    border-top: 0;
+    border-bottom: 1px solid var(--borda);
+  }
+
+  #abas::before {
+    content: "LucroJusto";
+    margin-right: 24px;
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  #abas button {
+    flex: none;
+    flex-direction: row;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+
+  #abas button:hover:not([aria-current="page"]) {
+    background: var(--fundo);
+    color: var(--texto);
+  }
+
+  .cartao {
+    margin-bottom: 16px;
+  }
+
+  /* Telas de um cartão só e botões isolados ficam centralizados, sem esticar */
+  .estreito {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .botao.estreito {
+    display: block;
+  }
+
+  .login {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .modo {
+    max-width: 360px;
+  }
+
+  /* Barras não ficam gigantes quando a coluna é larga */
+  .barra-dia i {
+    max-width: 64px;
+  }
+
+  /* Colunas */
+  .painel {
+    display: grid;
+    gap: 0 20px;
+    align-items: start;
+  }
+
+  .painel > .col {
+    min-width: 0;
+  }
+
+  /* Hoje (dia aberto) e resultado: duas colunas iguais */
+  .painel.dia-aberto,
+  .painel.resultado-painel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Histórico (semana e mês). Em duas colunas: "a b" em cima, "d c" embaixo. A ordem no HTML (a, b, c, d) é a do celular. */
+  .painel.tres {
+    grid-template-columns: 1.1fr 1fr;
+    grid-template-areas: "a b" "d c";
+  }
+
+  .painel.tres > .a { grid-area: a; }
+  .painel.tres > .b { grid-area: b; }
+  .painel.tres > .c { grid-area: c; }
+  .painel.tres > .d { grid-area: d; }
+
+  /* Ajustes: A e B lado a lado; C (custos fixos, plataformas, backup) embaixo, em duas colunas */
+  .painel.ajustes {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "a b" "c c";
+  }
+
+  .painel.ajustes > .a { grid-area: a; }
+  .painel.ajustes > .b { grid-area: b; }
+
+  .painel.ajustes > .c {
+    grid-area: c;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+    align-items: start;
+  }
+
+  /* Cartão da conta vira uma faixa: título, e-mail e botão na mesma linha */
+  .conta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .conta h2,
+  .conta p {
+    margin: 0;
+  }
+
+  .conta p {
+    flex: 1;
+  }
+
+  .conta .botao {
+    width: auto;
+    margin: 0;
+    padding: 0 28px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .painel.tres {
+    grid-template-columns: 1.2fr 0.9fr 1.1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "a b c" "d b c";
+  }
+
+  .painel.ajustes {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas: "a b c";
+  }
+
+  .painel.ajustes > .c {
+    display: block;
+  }
+}

@@ -35,6 +35,8 @@ export function htmlResultado(dia) {
     c.lucro < 0 ? ' O dia não cobriu os custos: parte do que você guardar vai sair do seu bolso.' : '';
 
   return `
+    <div class="painel resultado-painel">
+    <div class="col a">
     <section class="cartao resultado ${c.status}">
       <p class="resultado-titulo">${dataBR(dia.data)} · ${titulo}</p>
       <strong class="resultado-valor">${dinheiro(c.lucro)}</strong>
@@ -45,7 +47,9 @@ export function htmlResultado(dia) {
       ${indicadores.map(([rotulo, valor]) => `<div><span>${rotulo}</span><b>${valor}</b></div>`).join('')}
     </section>
     ${aviso}
+    </div>
 
+    <div class="col b">
     <section class="cartao">
       <h2>Seu dinheiro do dia</h2>
       ${linha('Entrou (faturamento)', dinheiro(c.faturamento))}
@@ -71,5 +75,7 @@ export function htmlResultado(dia) {
       ${linha('Despesas do dia', '− ' + dinheiro(c.despesas))}
       ${linha('Custos fixos do dia (rateio)', '− ' + dinheiro(c.fixos))}
       ${linha('Lucro líquido', dinheiro(c.lucro), 'total')}
-    </section>`;
+    </section>
+    </div>
+    </div>`;
 }

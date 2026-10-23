@@ -91,6 +91,8 @@ export async function telaHistorico(caixa, usuario) {
     caixa.innerHTML = `
       ${avisoHtml}
       ${seletor}
+      <div class="painel tres">
+      <div class="col a">
       <section class="cartao">
         <div class="nav-semana">
           <button type="button" class="ghost" data-semana="anterior">‹ Anterior</button>
@@ -107,7 +109,9 @@ export async function telaHistorico(caixa, usuario) {
         ${htmlGraficoGastos(semana.porDia, maximo, selecionado)}
         <p class="suave legenda">Combustível, manutenção, despesas e custos fixos, na mesma escala do gráfico de lucro.</p>
       </section>
+      </div>
 
+      <div class="col b">
       <section class="cartao indicadores">
         <div><span>Faturamento</span><b>${dinheiro(t.faturamento)}</b></div>
         <div><span>Gastos totais</span><b>${dinheiro(t.gastos)}</b></div>
@@ -137,7 +141,9 @@ export async function telaHistorico(caixa, usuario) {
               .join('')}</section>`
           : ''
       }
+      </div>
 
+      <div class="col c">
       <section class="cartao">
         <h2>${selecionado ? 'Dia ' + dataBR(selecionado).slice(0, 5) : 'Dias da semana'}</h2>
         ${
@@ -163,7 +169,9 @@ export async function telaHistorico(caixa, usuario) {
             : '<p class="suave">Nenhum dia fechado aqui.</p>'
         }
       </section>
+      </div>
 
+      <div class="col d">
       <section class="cartao">
         <h2>Limite do MEI em ${ano}</h2>
         ${linha('Faturado no ano (lançado aqui)', dinheiro(faturado))}
@@ -174,7 +182,9 @@ export async function telaHistorico(caixa, usuario) {
             ? 'Você passou do limite lançado aqui. Procure um contador.'
             : `Você usou ${Math.round(mei.percentual)}% do limite. Restam ${dinheiro(mei.restante)}.`
         } Conta só o que foi lançado no app.</p>
-      </section>`;
+      </section>
+      </div>
+      </div>`;
   }
 
   // Edição: reabre o dia e leva para a aba Hoje. Só um dia pode estar aberto por vez.

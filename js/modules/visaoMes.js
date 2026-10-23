@@ -31,6 +31,8 @@ export function htmlMes({ ym, resumo, anterior, info, terminou, atual }) {
   }
 
   return `
+    <div class="painel tres">
+    <div class="col a">
     <section class="cartao">
       <div class="nav-semana">
         <button type="button" class="ghost" data-mes="anterior">‹ Anterior</button>
@@ -60,7 +62,9 @@ export function htmlMes({ ym, resumo, anterior, info, terminou, atual }) {
           : ''
       }
     </section>
+    </div>
 
+    <div class="col b">
     <section class="cartao indicadores">
       <div><span>Dias trabalhados</span><b>${t.diasTrabalhados}</b></div>
       <div><span>Média por dia</span><b>${t.mediaPorDia === null ? '—' : dinheiro(t.mediaPorDia)}</b></div>
@@ -85,7 +89,9 @@ export function htmlMes({ ym, resumo, anterior, info, terminou, atual }) {
             .join('')}</section>`
         : ''
     }
+    </div>
 
+    <div class="col c">
     <section class="cartao">
       <h2>Fechamento</h2>
       <label class="marca"><input type="checkbox" data-check="dasPago" ${marcas.dasPago ? 'checked' : ''}> DAS-MEI pago</label>
@@ -95,5 +101,7 @@ export function htmlMes({ ym, resumo, anterior, info, terminou, atual }) {
       </label>
       <p class="suave">O DAS vence no dia 20 do mês seguinte, por isso estas marcas podem ser alteradas mesmo depois de fechar o mês.</p>
       ${acao}
-    </section>`;
+    </section>
+    </div>
+    </div>`;
 }

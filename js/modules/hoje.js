@@ -1,6 +1,6 @@
 // Aba Hoje. Abrir o dia (data + odômetro), lançar despesas e fechar o dia com o resultado.
 // Também serve para editar um dia já fechado (o Histórico reabre o dia e manda para cá).
-import { buscarDiaAberto, criarDia, atualizarDia, excluirDia, fecharDia } from '../services/dias.js';
+import { buscarDiaAberto, criarDia, atualizarDia, excluirDia, fecharDia, listarDiasFechados } from '../services/dias.js';
 import { carregarConfig } from '../services/dados.js';
 import { mesEstaFechado } from '../services/meses.js';
 import { calcularDia, parametrosDoDia, lerHoras } from './calculos.js';
@@ -25,6 +25,7 @@ export async function telaHoje(caixa, usuario) {
 
   let categoria = categorias[0]; // categoria de despesa selecionada
   let confirmarDescarte = false; // true depois do primeiro toque em "Descartar este dia"
+  let confirmarDataRepetida = null; // data que o usuário já confirmou manter, mesmo com outro dia nela
   let resultado = null; // dia recém-fechado, mostrado até o usuário tocar em "Lançar outro dia"
   // Um dia que já tem odômetro final foi fechado antes: estamos editando.
   const emEdicao = () => dia && dia.odometroFinal !== undefined;
@@ -40,7 +41,7 @@ export async function telaHoje(caixa, usuario) {
 
   // Ao editar, os campos do fechamento já vêm preenchidos com o que foi salvo.
   function rascunhoDoDia() {
-    const r = { odometroFinal: String(dia.odometroFinal), horas: dia.horas ? String(dia.horas).replace('.', ',') : '' };
+    const r = { data: dia.data, odometroFinal: String(dia.odometroFinal), horas: dia.horas ? String(dia.horas).replace('.', ',') : '' };
     nomesPlataformas().forEach((nome, i) => {
       const p = dia.plataformas.find((x) => x.nome === nome);
       r['v' + i] = p && p.valor ? String(p.valor).replace('.', ',') : '';
@@ -64,7 +65,7 @@ export async function telaHoje(caixa, usuario) {
 
   function desenharAbrir() {
     caixa.innerHTML = `
-      <section class="cartao">
+      <section class="cartao estreito">
         <h1>Abrir o dia</h1>
         <label>Data do dia
           <input type="date" id="data" value="${hojeISO()}" max="${hojeISO()}">
@@ -81,7 +82,7 @@ export async function telaHoje(caixa, usuario) {
   function desenharResultado() {
     caixa.innerHTML = `
       ${htmlResultado(resultado)}
-      <button type="button" class="botao" data-acao="novo">Lançar outro dia</button>`;
+      <button type="button" class="botao estreito" data-acao="novo">Lançar outro dia</button>`;
   }
 
   function desenharDiaAberto() {
@@ -89,6 +90,8 @@ export async function telaHoje(caixa, usuario) {
     const r = (campo) => esc(rascunho[campo] || ''); // valor já digitado, para repor na tela
 
     caixa.innerHTML = `
+      <div class="painel dia-aberto">
+      <div class="col a">
       <section class="cartao">
         <h1>${emEdicao() ? 'Editando' : 'Dia aberto'}: ${dataBR(dia.data)}</h1>
         <p class="suave">Odômetro inicial: ${dia.odometroInicial} km</p>
@@ -121,9 +124,18 @@ export async function telaHoje(caixa, usuario) {
           .join('')}
         <div class="resumo total"><span>Total de despesas</span><b>${dinheiro(total)}</b></div>
       </section>
+      </div>
 
+      <div class="col b">
       <section class="cartao">
         <h2>${emEdicao() ? 'Salvar alterações' : 'Fechar o dia'}</h2>
+        ${
+          emEdicao()
+            ? `<label>Data do dia
+          <input type="date" data-f="data" value="${r('data')}" max="${hojeISO()}">
+        </label>`
+            : ''
+        }
         <label>Odômetro no fim (km)
           <input type="text" inputmode="decimal" data-f="odometroFinal" value="${r('odometroFinal')}">
         </label>
@@ -153,7 +165,9 @@ export async function telaHoje(caixa, usuario) {
           ${confirmarDescarte ? 'Toque de novo para descartar o dia' : 'Descartar este dia'}
         </button>`
         }
-      </section>`;
+      </section>
+      </div>
+      </div>`;
   }
 
   // Grava a nova lista de despesas e só atualiza a tela se a gravação deu certo.
@@ -209,6 +223,27 @@ export async function telaHoje(caixa, usuario) {
     const horas = lerHoras(textoHoras);
     if (textoHoras && horas === null) return erro('Horas inválidas. Use 8, 8,5 ou 8:30.');
 
+    // Ao editar, a data pode ser trocada. Valida a nova data antes de gravar.
+    let data = dia.data;
+    if (emEdicao()) {
+      data = rascunho.data || dia.data;
+      if (data > hojeISO()) return erro('A data não pode ser no futuro.');
+      if (data !== dia.data) {
+        try {
+          if (await mesEstaFechado(usuario.uid, data.slice(0, 7))) {
+            return erro('O mês dessa data está fechado. Reabra o mês no Histórico para mover o dia para lá.');
+          }
+          const repetido = (await listarDiasFechados(usuario.uid)).some((d) => d.data === data && d.id !== dia.id);
+          if (repetido && confirmarDataRepetida !== data) {
+            confirmarDataRepetida = data;
+            return erro(`Já existe um dia fechado em ${dataBR(data)}. Toque em Salvar de novo para manter os dois.`);
+          }
+        } catch (e) {
+          return erro('Não foi possível conferir a data. Confira a internet e tente de novo.');
+        }
+      }
+    }
+
     // Só entram as plataformas em que houve ganho ou corridas
     const plataformas = nomesPlataformas()
       .map((nome, i) => ({
@@ -226,8 +261,9 @@ export async function telaHoje(caixa, usuario) {
     );
 
     try {
-      await fecharDia(usuario.uid, dia.id, { odometroFinal, horas, plataformas, snapshot: parametros, calculados });
-      resultado = { ...dia, aberto: false, odometroFinal, horas, plataformas, snapshot: parametros, calculados };
+      await fecharDia(usuario.uid, dia.id, { data, odometroFinal, horas, plataformas, snapshot: parametros, calculados });
+      confirmarDataRepetida = null;
+      resultado = { ...dia, data, aberto: false, odometroFinal, horas, plataformas, snapshot: parametros, calculados };
       dia = null;
       rascunho = {};
       desenhar();

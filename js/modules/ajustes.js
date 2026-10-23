@@ -1,8 +1,10 @@
 // Tela de Ajustes: dados da moto, manutenção, custos fixos e plataformas.
 // Cada alteração é salva sozinha no Firestore (não existe botão "Salvar").
 import { carregarConfig, salvarConfig } from '../services/dados.js';
-import { listarTodosDias } from '../services/dias.js';
-import { manutencaoPorKm, combustivelPorKm, fixoPorDia } from './calculos.js';
+import { listarTodosDias, listarDiasFechados, atualizarDiasEmLote } from '../services/dias.js';
+import { listarMeses } from '../services/meses.js';
+import { manutencaoPorKm, combustivelPorKm, fixoPorDia, parametrosDoDia, recalcularDiaFechado } from './calculos.js';
+import { mesDe } from './mes.js';
 import { montarBackup, baixarBackup } from './backup.js';
 
 const dinheiro = (n) =>
@@ -36,6 +38,7 @@ export async function telaAjustes(caixa, usuario) {
   }
 
   let status = '';
+  let pendenteRecalculo = null; // depois do 1º toque em "Recalcular": { alvos, travados } aguardando o 2º toque
 
   function mostrarStatus(texto) {
     status = texto;
@@ -72,7 +75,10 @@ export async function telaAjustes(caixa, usuario) {
     `<div class="resumo ${destaque}"><span>${rotulo}</span><b data-resumo="${chave}"></b></div>`;
 
   function desenhar() {
+    pendenteRecalculo = null;
     caixa.innerHTML = `
+      <div class="painel ajustes">
+      <div class="col a">
       <section class="cartao">
         <h1>Ajustes</h1>
         <p class="suave" id="status" role="status">${status}</p>
@@ -84,6 +90,15 @@ export async function telaAjustes(caixa, usuario) {
           .join('')}
       </section>
 
+      <section class="cartao">
+        <h2>Dias já fechados</h2>
+        <p class="suave">Cada dia fechado guarda os ajustes da época em que foi fechado. Para refazer as contas de todos eles com os ajustes de agora (meta, litro, manutenção e custos fixos), use o botão. Dias de mês fechado não mudam.</p>
+        <button type="button" class="botao secundario" data-acao="recalcular">Recalcular dias fechados</button>
+        <p class="suave" id="statusRecalcular" role="status"></p>
+      </section>
+      </div>
+
+      <div class="col b">
       <section class="cartao">
         <h2>Manutenção da moto</h2>
         <p class="suave">Preço da peça e quantos km ela dura. O app soma o custo por km.</p>
@@ -104,7 +119,9 @@ export async function telaAjustes(caixa, usuario) {
         ${linhaResumo('Combustível por km', 'comb')}
         ${linhaResumo('Custo total por km da moto', 'total', 'total')}
       </section>
+      </div>
 
+      <div class="col c">
       <section class="cartao">
         <h2>Custos fixos mensais</h2>
         <p class="suave">Valor por mês. O app divide pelos dias trabalhados e desconta de cada dia.</p>
@@ -142,7 +159,9 @@ export async function telaAjustes(caixa, usuario) {
         <p class="suave">Baixa um arquivo com os seus ajustes e todos os seus dias. Guarde em um lugar seguro de vez em quando.</p>
         <button type="button" class="botao secundario" data-acao="backup">Baixar backup (.json)</button>
         <p class="suave" id="statusBackup" role="status"></p>
-      </section>`;
+      </section>
+      </div>
+      </div>`;
     atualizarResumos();
   }
 
@@ -155,6 +174,67 @@ export async function telaAjustes(caixa, usuario) {
       aviso.textContent = `Backup baixado (${dias.length} dias).`;
     } catch (e) {
       aviso.textContent = 'Não foi possível gerar o backup. Confira a internet e tente de novo.';
+    }
+  }
+
+  // Recalcula os dias fechados com os ajustes atuais. Dois toques: o 1º mostra quantos dias serão alterados, o 2º confirma.
+  async function recalcular() {
+    const aviso = caixa.querySelector('#statusRecalcular');
+    const botao = caixa.querySelector('[data-acao="recalcular"]');
+
+    try {
+      if (!pendenteRecalculo) {
+        aviso.textContent = 'Conferindo os dias…';
+        const [dias, meses] = await Promise.all([listarDiasFechados(usuario.uid), listarMeses(usuario.uid)]);
+        const alvos = dias.filter((d) => meses[mesDe(d.data)]?.fechado !== true);
+        const travados = dias.length - alvos.length;
+
+        if (!alvos.length) {
+          aviso.textContent = dias.length
+            ? 'Todos os dias fechados estão em meses fechados. Reabra o mês no Histórico para recalcular.'
+            : 'Ainda não há dias fechados.';
+          return;
+        }
+        pendenteRecalculo = { alvos, travados };
+        botao.textContent = 'Toque de novo para confirmar';
+        aviso.textContent =
+          `Vai recalcular ${alvos.length} ${alvos.length === 1 ? 'dia' : 'dias'}` +
+          (travados ? ` (${travados} em mês fechado não mudam)` : '') +
+          '. Os ganhos e despesas continuam iguais; só mudam os custos e o lucro.';
+        setTimeout(() => {
+          if (pendenteRecalculo && pendenteRecalculo.alvos === alvos) {
+            pendenteRecalculo = null;
+            botao.textContent = 'Recalcular dias fechados';
+            aviso.textContent = '';
+          }
+        }, 8000);
+        return;
+      }
+
+      const { alvos } = pendenteRecalculo;
+      pendenteRecalculo = null;
+      botao.textContent = 'Recalcular dias fechados';
+      aviso.textContent = 'Recalculando…';
+
+      const parametros = parametrosDoDia(config);
+      const lista = [];
+      let ignorados = 0;
+      alvos.forEach((d) => {
+        try {
+          lista.push({ id: d.id, campos: recalcularDiaFechado(d, parametros) });
+        } catch (e) {
+          ignorados++; // dia com odômetros inválidos: não mexe
+        }
+      });
+
+      await atualizarDiasEmLote(usuario.uid, lista);
+      aviso.textContent =
+        `Pronto: ${lista.length} ${lista.length === 1 ? 'dia recalculado' : 'dias recalculados'}` +
+        (ignorados ? `, ${ignorados} ignorado(s) por odômetro inválido` : '') +
+        '. Veja no Histórico.';
+    } catch (e) {
+      pendenteRecalculo = null;
+      aviso.textContent = 'Não foi possível recalcular. Confira a internet e tente de novo.';
     }
   }
 
@@ -188,6 +268,10 @@ export async function telaAjustes(caixa, usuario) {
 
     if (botao.dataset.acao === 'backup') {
       fazerBackup();
+      return;
+    }
+    if (botao.dataset.acao === 'recalcular') {
+      recalcular();
       return;
     }
 

@@ -47,7 +47,7 @@ function desenhar() {
     // Os Ajustes carregam do banco aos poucos, por isso ficam numa caixa própria (#conteudo)
     tela.innerHTML = `
       <div id="conteudo"></div>
-      <section class="cartao">
+      <section class="cartao conta">
         <h2>Conta</h2>
         <p class="suave" id="email"></p>
         <button type="button" class="botao secundario" id="sair">Sair</button>

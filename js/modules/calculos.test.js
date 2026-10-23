@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { padroes } from '../config/padroes.js';
-import { manutencaoPorKm, fixoPorDia, parametrosDoDia, farol, lerHoras, calcularDia } from './calculos.js';
+import { manutencaoPorKm, fixoPorDia, parametrosDoDia, farol, lerHoras, calcularDia, recalcularDiaFechado } from './calculos.js';
 
 // Dois números são "quase iguais" se diferem menos de meio centavo
 const quase = (a, b) => assert.ok(Math.abs(a - b) < 0.005, `${a} deveria ser quase ${b}`);
@@ -95,4 +95,21 @@ test('lerHoras aceita 8, 8,5 e 8:30', () => {
   assert.equal(lerHoras(''), null);
   assert.equal(lerHoras('abc'), null);
   assert.equal(lerHoras('0'), null);
+});
+
+test('recalcularDiaFechado usa os parâmetros novos e guarda a nova fotografia', () => {
+  const antigo = calcularDia(diaExemplo, p);
+  const novos = { ...p, precoLitro: p.precoLitro + 1, meta: 999 };
+  const { snapshot, calculados } = recalcularDiaFechado(diaExemplo, novos);
+
+  assert.equal(snapshot, novos);
+  assert.equal(calculados.faturamento, antigo.faturamento); // ganhos não mudam
+  assert.ok(calculados.combustivel > antigo.combustivel); // litro mais caro, mais combustível
+  assert.ok(calculados.lucro < antigo.lucro);
+  quase(calculados.lucro, calculados.faturamento - calculados.gastos);
+  assert.equal(calculados.status, farol(calculados.lucro, 999)); // a meta nova (999) entra no farol
+});
+
+test('recalcularDiaFechado recusa dia com odômetro inválido', () => {
+  assert.throws(() => recalcularDiaFechado({ ...diaExemplo, odometroFinal: 1000 }, p), RangeError);
 });

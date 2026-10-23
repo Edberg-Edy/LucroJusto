@@ -11,6 +11,7 @@ import {
   where,
   limit,
   serverTimestamp,
+  writeBatch,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { db } from './firebase.js';
 
@@ -58,3 +59,13 @@ export async function listarTodosDias(uid) {
 
 // Reabre um dia fechado para edição (os dados dele continuam guardados).
 export const reabrirDia = (uid, id) => updateDoc(doc(db, 'users', uid, 'dias', id), { aberto: true });
+
+// Atualiza vários dias de uma vez. lista = [{ id, campos }]. O Firestore aceita até 500 gravações por lote;
+// aqui usamos 400 por segurança.
+export async function atualizarDiasEmLote(uid, lista) {
+  for (let i = 0; i < lista.length; i += 400) {
+    const lote = writeBatch(db);
+    lista.slice(i, i + 400).forEach(({ id, campos }) => lote.update(doc(db, 'users', uid, 'dias', id), campos));
+    await lote.commit();
+  }
+}
