@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Regras do LucroJusto: cada usuário só lê e grava os dados que estão dentro da própria conta.
+// Regras do LucroNoKM: cada usuário só lê e grava os dados que estão dentro da própria conta.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid}/{document=**} {
