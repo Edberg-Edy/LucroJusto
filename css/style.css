@@ -1,4 +1,4 @@
-/* LucroNoKm: estilo base. Tema claro/escuro automático, pensado para celular. */
+/* LucroNoKM: estilo base. Tema claro/escuro automático, pensado para celular. */
 :root {
   --fundo: #e9eef3;
   --cartao: #ffffff;
@@ -606,7 +606,7 @@ input {
   }
 
   #abas::before {
-    content: "LucroNoKm";
+    content: "LucroNoKM";
     margin-right: 24px;
     font-size: 20px;
     font-weight: 900;

@@ -1,4 +1,4 @@
-// Contas do LucroNoKm. São funções puras: não mexem em tela nem em Firebase, só recebem números e devolvem números.
+// Contas do LucroNoKM. São funções puras: não mexem em tela nem em Firebase, só recebem números e devolvem números.
 // Por isso dá para testá-las sozinhas (veja calculos.test.js).
 
 // ---------- Custos por km e por dia (usados nos Ajustes) ----------

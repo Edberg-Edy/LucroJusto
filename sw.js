@@ -1,4 +1,4 @@
-// Service worker do LucroNoKm: guarda o app no aparelho para abrir sem internet.
+// Service worker do LucroNoKM: guarda o app no aparelho para abrir sem internet.
 // Os DADOS (dias, ajustes) não passam por aqui: o próprio Firestore guarda offline.
 // Ao mudar qualquer arquivo do app, aumente o número da VERSAO para o celular baixar a versão nova.
 const VERSAO = 'lucronokm-v3';

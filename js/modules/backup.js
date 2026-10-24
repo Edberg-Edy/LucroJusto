@@ -32,11 +32,11 @@ export function baixarBackup(backup) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Confere se o arquivo escolhido é mesmo um backup do LucroNoKm e se está inteiro.
+// Confere se o arquivo escolhido é mesmo um backup do LucroNoKM e se está inteiro.
 // Devolve { ok: true, resumo } ou { ok: false, erro } com uma frase pronta para mostrar na tela.
 export function validarBackup(b) {
   const falha = (erro) => ({ ok: false, erro });
-  if (!objeto(b) || b.app !== 'LucroJusto') return falha('Este arquivo não é um backup do LucroNoKm.');
+  if (!objeto(b) || b.app !== 'LucroJusto') return falha('Este arquivo não é um backup do LucroNoKM.');
   if (b.versao !== 1) return falha('Versão de backup não reconhecida. Use um backup gerado por este app.');
 
   const c = b.config;

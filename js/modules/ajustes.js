@@ -254,7 +254,7 @@ export async function telaAjustes(caixa, usuario) {
     try {
       conteudo = JSON.parse(await arquivo.text());
     } catch (e) {
-      aviso.textContent = 'Não consegui ler este arquivo. Ele precisa ser um backup .json do LucroNoKm.';
+      aviso.textContent = 'Não consegui ler este arquivo. Ele precisa ser um backup .json do LucroNoKM.';
       return;
     }
     const conferido = validarBackup(conteudo);

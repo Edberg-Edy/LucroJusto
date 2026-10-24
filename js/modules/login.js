@@ -12,7 +12,7 @@ const mensagens = {
 export function telaLogin(tela) {
   tela.innerHTML = `
     <section class="cartao login">
-      <h1>LucroNoKm</h1>
+      <h1>LucroNoKM</h1>
       <p class="suave">Entre para guardar seus dias na nuvem e acessar de qualquer aparelho.</p>
       <button type="button" class="botao" id="entrar">Entrar com Google</button>
       <p class="erro" id="erro" role="alert"></p>

@@ -1,4 +1,4 @@
-// LucroNoKm: ponto de entrada. Login com Google, navegação entre as 3 abas e as telas Hoje, Histórico e Ajustes.
+// LucroNoKM: ponto de entrada. Login com Google, navegação entre as 3 abas e as telas Hoje, Histórico e Ajustes.
 import { observarLogin, sair } from './services/firebase.js';
 import { telaLogin } from './modules/login.js';
 import { telaHoje } from './modules/hoje.js';

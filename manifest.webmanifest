@@ -1,6 +1,6 @@
 {
-  "name": "LucroNoKm",
-  "short_name": "LucroNoKm",
+  "name": "LucroNoKM",
+  "short_name": "LucroNoKM",
   "description": "Controle de ganhos, gastos e lucro do motoboy.",
   "start_url": "./index.html",
   "scope": "./",
