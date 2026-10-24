@@ -1,6 +1,6 @@
 {
-  "name": "LucroJusto",
-  "short_name": "LucroJusto",
+  "name": "LucroNoKm",
+  "short_name": "LucroNoKm",
   "description": "Controle de ganhos, gastos e lucro do motoboy.",
   "start_url": "./index.html",
   "scope": "./",

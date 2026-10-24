@@ -1,4 +1,4 @@
-# LucroJusto: status do projeto
+# LucroNoKm: status do projeto
 
 Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [docs/SPEC.md](docs/SPEC.md).
 
@@ -26,7 +26,7 @@ Atualizado a cada etapa fechada. Contexto completo em [README.md](README.md) e [
 
 ## Decisões recentes
 
-- O app se chama **LucroJusto** (o protótipo se chamava MotoCaixa).
+- O app se chama **LucroNoKm** (o protótipo se chamava MotoCaixa).
 - Site estático sem Vite: HTML, CSS e JavaScript puros, Firebase por CDN.
 - Sem Copilot no fluxo: o código vem completo, é testado e commitado por etapa.
 - Firestore na região São Paulo (`southamerica-east1`). As regras foram publicadas à mão no console; `firestore.rules` guarda a cópia.

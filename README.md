@@ -1,4 +1,4 @@
-# LucroJusto
+# LucroNoKm
 
 Controle de ganhos, gastos e lucro para motoboy. Feche o dia em menos de um minuto e descubra se ele realmente valeu a pena.
 
@@ -10,7 +10,7 @@ Controle de ganhos, gastos e lucro para motoboy. Feche o dia em menos de um minu
 
 Quem trabalha com entregas por plataformas (iFood, Rappi, 99, Loggi) e corridas particulares recebe dinheiro de vários lugares e quase nunca sabe o **lucro real**: combustível, manutenção da moto, imposto e internet pesam no resultado, mas ficam fora da conta.
 
-O LucroJusto responde três perguntas todos os dias:
+O LucroNoKm responde três perguntas todos os dias:
 
 1. Eu ganhei dinheiro de verdade hoje?
 2. Quanto preciso **guardar** para a moto e para os custos fixos?
@@ -82,7 +82,7 @@ Valores padrão: meta R$ 200, 35 km/l, litro R$ 6,20, 24 dias por mês, limite M
 ## Estrutura do repositório
 
 ```
-LucroJusto/
+LucroNoKm/
 ├── index.html
 ├── css/style.css
 ├── js/

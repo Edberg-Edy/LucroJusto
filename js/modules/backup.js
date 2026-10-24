@@ -25,18 +25,18 @@ export function baixarBackup(backup) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `lucrojusto-backup-${hojeISO()}.json`;
+  link.download = `lucronokm-backup-${hojeISO()}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Confere se o arquivo escolhido é mesmo um backup do LucroJusto e se está inteiro.
+// Confere se o arquivo escolhido é mesmo um backup do LucroNoKm e se está inteiro.
 // Devolve { ok: true, resumo } ou { ok: false, erro } com uma frase pronta para mostrar na tela.
 export function validarBackup(b) {
   const falha = (erro) => ({ ok: false, erro });
-  if (!objeto(b) || b.app !== 'LucroJusto') return falha('Este arquivo não é um backup do LucroJusto.');
+  if (!objeto(b) || b.app !== 'LucroJusto') return falha('Este arquivo não é um backup do LucroNoKm.');
   if (b.versao !== 1) return falha('Versão de backup não reconhecida. Use um backup gerado por este app.');
 
   const c = b.config;
