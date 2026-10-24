@@ -52,7 +52,38 @@ export async function telaHoje(caixa, usuario) {
     return r;
   }
 
-  let rascunho = emEdicao() ? rascunhoDoDia() : {}; // o que já foi digitado no fechamento (não se perde ao lançar uma despesa)
+  // O que foi digitado no fechamento também fica guardado no aparelho (localStorage), para não se perder
+  // quando você troca de aba ou recarrega a página. Só vale para o mesmo dia e a mesma lista de plataformas.
+  const chaveRascunho = `lucronokm:rascunho:${usuario.uid}`;
+
+  function rascunhoSalvo() {
+    try {
+      const s = JSON.parse(localStorage.getItem(chaveRascunho) || 'null');
+      if (s && dia && s.diaId === dia.id && s.plataformas === nomesPlataformas().join('|')) return s.campos || {};
+    } catch (e) {
+      // sem localStorage (navegação privada, por exemplo): segue sem guardar
+    }
+    return {};
+  }
+
+  function guardarRascunho() {
+    try {
+      if (dia) localStorage.setItem(chaveRascunho, JSON.stringify({ diaId: dia.id, plataformas: nomesPlataformas().join('|'), campos: rascunho }));
+    } catch (e) {
+      // sem localStorage: o rascunho fica só na memória da tela
+    }
+  }
+
+  function apagarRascunho() {
+    try {
+      localStorage.removeItem(chaveRascunho);
+    } catch (e) {
+      // nada a fazer
+    }
+  }
+
+  // o que já foi digitado no fechamento (não se perde ao lançar uma despesa nem ao trocar de aba)
+  let rascunho = { ...(emEdicao() ? rascunhoDoDia() : {}), ...rascunhoSalvo() };
 
   const mostrarErro = (texto, id = 'erro') => {
     const el = caixa.querySelector('#' + id);
@@ -276,6 +307,7 @@ export async function telaHoje(caixa, usuario) {
       const gravado = await fecharDia(usuario.uid, dia.id, { data, odometroFinal, horas, plataformas, snapshot: parametros, calculados });
       confirmarDataRepetida = null;
       confirmarKm = null;
+      apagarRascunho();
       resultado = { ...dia, pendente: !gravado.sincronizado, data, aberto: false, odometroFinal, horas, plataformas, snapshot: parametros, calculados };
       dia = null;
       rascunho = {};
@@ -305,6 +337,7 @@ export async function telaHoje(caixa, usuario) {
         snapshot: dia.snapshot,
         calculados,
       });
+      apagarRascunho();
       dia = null;
       rascunho = {};
       desenhar();
@@ -327,6 +360,7 @@ export async function telaHoje(caixa, usuario) {
     }
     try {
       await excluirDia(usuario.uid, dia.id);
+      apagarRascunho();
       dia = null;
       rascunho = {};
       confirmarDescarte = false;
@@ -361,7 +395,10 @@ export async function telaHoje(caixa, usuario) {
   // Guarda o que é digitado no fechamento, para não perder se a tela for redesenhada
   caixa.addEventListener('input', (evento) => {
     const campo = evento.target.dataset.f;
-    if (campo) rascunho[campo] = evento.target.value;
+    if (campo) {
+      rascunho[campo] = evento.target.value;
+      guardarRascunho();
+    }
   });
 
   // Enter nos campos de texto faz a mesma coisa que o botão ao lado
